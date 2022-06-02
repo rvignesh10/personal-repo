@@ -1,0 +1,60 @@
+\documentclass[11pt]{article}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{color}
+
+\usepackage{listings}
+\lstset{
+basicstyle=\footnotesize\ttfamily,
+columns=flexible,
+breaklines=true,
+commentstyle=\color{red},
+keywordstyle=\color{black}\bfseries}
+
+\textwidth=6.5in
+\textheight=9in
+\topmargin=-0.8in
+\headheight=15.75pt
+\headsep=.35in
+\oddsidemargin=0.0in
+\evensidemargin=0.0in
+
+
+\begin{document}
+\begin{flushright}
+\small{MATH-6840\\
+J. W. Banks}
+\end{flushright}
+
+\begin{center}
+\large{Example of using \LaTeX ~for problem set solutions}\\
+\end{center}
+
+\begin{enumerate}
+  \item {\color{blue} \em I would often have the original question restated here in italics.}\\
+  
+  Then my response would appear here. Assume in this case that I was asked about a heat equation. In \LaTeX ~the equation can be nicely displayed like
+\begin{align*}
+  u_t(x,t) & =\nu u_{xx}(x,t)\\
+  u(x,0) & = u_0(x).
+\end{align*}
+
+
+\item {\color{blue} \em We might also have need to submit plots and code. For example, suppose we were asked to plot $\sinh(x)$ and $\cosh(x)$ for $x\in[-\pi,\pi]$.}\\
+
+The requested plot is given in Figure~\ref{fig:example}, and the MATLAB code to produce this is given in Listing~\ref{code:myCode}.
+\begin{figure}[hbt]
+  \begin{center}
+  \includegraphics[width=2in]{images/plotExample}
+  \caption{Example plot of $\sinh(x)$ and $\cosh(x)$.}
+  \label{fig:example}
+  \end{center}
+\end{figure}
+
+\lstinputlisting[language=Matlab, numbers=left, stepnumber=1, firstline=1,caption={Example code},label=code:myCode,frame=single]{codeExample.m}
+
+\end{enumerate}
+
+\end{document}

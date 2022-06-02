@@ -1,0 +1,15 @@
+\BOOKMARK [1][-]{appendix.A}{Introduction}{}% 1
+\BOOKMARK [1][-]{appendix.B}{Choice of Design Variables}{}% 2
+\BOOKMARK [2][-]{subsection.B.1}{Linear Parameterization}{appendix.B}% 3
+\BOOKMARK [2][-]{subsection.B.2}{Sinusoidal Parameterization}{appendix.B}% 4
+\BOOKMARK [2][-]{subsection.B.3}{Triangular Parameterization}{appendix.B}% 5
+\BOOKMARK [1][-]{appendix.C}{Objective Function and Constraints}{}% 6
+\BOOKMARK [1][-]{appendix.D}{Setting up the Optimization Problem}{}% 7
+\BOOKMARK [1][-]{appendix.E}{Comparison of Preliminary Results}{}% 8
+\BOOKMARK [1][-]{appendix.F}{Convergence Study}{}% 9
+\BOOKMARK [1][-]{appendix.G}{Results and Inferences}{}% 10
+\BOOKMARK [1][-]{appendix.H}{Appendix}{}% 11
+\BOOKMARK [2][-]{subsection.Alph0.1}{Optimal points from Optimizer:}{appendix.H}% 12
+\BOOKMARK [2][-]{subsection.Alph0.2}{Optimizer convergence - Flux value V Iterations}{appendix.H}% 13
+\BOOKMARK [2][-]{subsection.Alph0.3}{Convergence Analysis}{appendix.H}% 14
+\BOOKMARK [2][-]{subsection.Alph0.4}{MATLAB Code}{appendix.H}% 15

@@ -1,0 +1,30 @@
+\documentclass{article}
+\usepackage{comment}
+\usepackage{float}
+\usepackage{fontenc}
+\usepackage{graphicx}
+%\usepackage{subcaption}
+\usepackage{amsmath}
+\usepackage[letterpaper, margin = 0.6in]{geometry}
+
+\begin{document}
+\begin{center}
+\textbf{\large{Project -1 Analysis Write up}}
+\end{center}
+\noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}} 
+\newline
+\textbf{a) Estimation of Heat-Flux per unit length} \\
+\newline
+The heat exchanger here describes a 2-D heat transfer problem. This can be estimated using finite difference methods after descretizing the 2-D surface area of the heat exchanger into nodal points where mass is clumped. Heat transfer is defined as heat that is transferred between one nodal point to another through the rod that is connecting the nodes. \\
+\newline
+The catch here is that the top profile of the heat exchanger can be optimized to get maximum heat flux. \\
+\newline
+Heat flux is given by : $ q = -k \Delta{T}$ where T is the temperature profile $ T(x,y)$ of the heat exchanger across the nodal points. \\
+\newline
+$ \Rightarrow q = -k (\frac{\partial T}{\partial x} \hat{i} + \frac{\partial T}{\partial y} \hat{j})$ \\
+\newline
+From conservation of energy, the heat that transfers from the water on to the heat exchanger is equal to the heat transferred to air from the exchanger. \\
+\newline
+\textbf{b) Geometry definition of the problem} \\
+\newline
+\end{document}

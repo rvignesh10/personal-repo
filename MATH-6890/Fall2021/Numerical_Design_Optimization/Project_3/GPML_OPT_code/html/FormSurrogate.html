@@ -1,0 +1,270 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>FormSurrogate</title><meta name="generator" content="MATLAB 9.10"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2021-11-11"><meta name="DC.source" content="FormSurrogate.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">sample the function</a></li><li><a href="#4">train gaussian process surrogate</a></li><li><a href="#5">Comparison of surrogate model with Chaotic ODE</a></li><li><a href="#6">plot</a></li><li><a href="#7">save variables</a></li></ul></div><pre class="codeinput">clc
+clear <span class="string">all</span>;
+</pre><pre class="codeinput">mydir = <span class="string">'/Users/vignesh/Desktop/RPI/Fall 2021/MDO/Project_3/GPML_OPT_code'</span>;
+addpath(mydir(1:end-1))
+addpath([mydir,<span class="string">'cov'</span>])
+addpath([mydir,<span class="string">'doc'</span>])
+addpath([mydir,<span class="string">'inf'</span>])
+addpath([mydir,<span class="string">'lik'</span>])
+addpath([mydir,<span class="string">'mean'</span>])
+addpath([mydir,<span class="string">'prior'</span>])
+addpath([mydir,<span class="string">'util'</span>])
+</pre><h2 id="3">sample the function</h2><pre class="codeinput"><span class="comment">% r_2</span>
+r_2_in = 0.1;
+r_2_out = 1.5;
+
+<span class="comment">% \alpha_1</span>
+alpha1_in = 0;
+alpha1_out= 0.3;
+
+<span class="comment">% \omega</span>
+omega_in = 2*pi*3/60;
+omega_out = 2*pi*8/60;
+
+<span class="comment">% Range vector</span>
+<span class="comment">% [ r_2(in) r_2(out)]</span>
+<span class="comment">% [ alp(in) alp(out)]</span>
+<span class="comment">% [ omg(in) omg(out)]</span>
+Range = [r_2_in r_2_out;alpha1_in alpha1_out;omega_in omega_out];
+
+
+<span class="comment">% sampling process</span>
+bins = 1000;
+dim = length(Range);
+x = samplingProject3(Range,bins,dim);
+
+<span class="comment">% true objective generation from sampled data points</span>
+tau_int = 1000;
+tau = 0:0.01:tau_int;
+y = zeros(length(x),1);
+Y0 = [pi/3;0];
+
+<span class="keyword">for</span> i=1:length(x)
+    y(i,1) = ODEsim(Y0,tau,x(i,:));
+<span class="keyword">end</span>
+</pre><h2 id="4">train gaussian process surrogate</h2><pre class="codeinput"><span class="comment">% set the squared exponential covariance function</span>
+covfunc = {@covMaterniso,1};  <span class="comment">% @covSEiso</span>
+hyp.cov = [log(0.3); log(1)]; <span class="comment">% first component is log(l) and second is log(sigma)</span>
+
+<span class="comment">% set the likelihood function to Gaussian</span>
+likfunc = @likGauss;
+sn = 0.25; <span class="comment">%1e-16; % this is the noise level</span>
+hyp.lik = log(sn);
+
+<span class="comment">% maximize the likelihood function to find the hyperparameters</span>
+hyp = minimize(hyp, @gp, -300, @infExact, [], covfunc,<span class="keyword">...</span>
+    likfunc, x, y);
+</pre><h2 id="5">Comparison of surrogate model with Chaotic ODE</h2><pre class="codeinput"><span class="comment">% Generate a 1-D slice of the function along \omega</span>
+z1 = 0.8;  <span class="comment">% r_2 - constant</span>
+z2 = 0.058; <span class="comment">% \alpha_1 - constant</span>
+Om = omega_in:0.005:omega_out; <span class="comment">% range of omega</span>
+
+z = [ones(length(Om),1)*z1 ones(length(Om),1)*z2 Om'];
+<span class="comment">% surrogate approximates of the true objective (1-D slice)</span>
+[m s2] = gp(hyp, @infExact, [], covfunc, likfunc, x, y, z);
+
+m2 = zeros(length(Om),1);
+<span class="keyword">for</span> i=1:length(Om)
+    <span class="comment">% True objective values along the 1-D slice</span>
+    m2(i) = ODEsim(Y0,tau,z(i,:));
+<span class="keyword">end</span>
+
+<span class="comment">% computing surrogate error</span>
+surrErr = compareSurrogate(m,m2,Om);
+</pre><h2 id="6">plot</h2><pre class="codeinput">figure
+plot(Om,m); <span class="comment">% surrogate model</span>
+hold <span class="string">on</span>;
+grid <span class="string">on</span>;
+plot(Om,m2); <span class="comment">% Chaotic ODE</span>
+xlabel(<span class="string">'$\omega$'</span>,<span class="string">'Interpreter'</span>,<span class="string">'latex'</span>);
+ylabel(<span class="string">'$\sigma(\frac{d\phi}{dt})$'</span>,<span class="string">'Interpreter'</span>,<span class="string">'latex'</span>);
+legend(<span class="string">'Surrogate'</span>,<span class="string">'Chaotic ODE'</span>);
+title(<span class="string">'Checking accuracy of surrogate'</span><span class="keyword">...</span>
+    ,<span class="string">'Interpreter'</span>,<span class="string">'latex'</span>);
+
+figure
+plot(Om,m2);
+grid <span class="string">on</span>
+xlabel(<span class="string">'$\omega$'</span>,<span class="string">'Interpreter'</span>,<span class="string">'latex'</span>);
+ylabel(<span class="string">'$\sigma(\frac{d\phi}{dt})$'</span>,<span class="string">'Interpreter'</span>,<span class="string">'latex'</span>);
+title(<span class="string">'1-D slice of objective function'</span>);
+</pre><h2 id="7">save variables</h2><pre class="codeinput">fname = input(<span class="string">'Enter file name:'</span>,<span class="string">'s'</span>);
+save(fname,<span class="string">'x'</span>,<span class="string">'y'</span>,<span class="string">'Range'</span>,<span class="string">'tau'</span>,<span class="string">'hyp'</span>);
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2021a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+clc
+clear all;
+%%
+mydir = '/Users/vignesh/Desktop/RPI/Fall 2021/MDO/Project_3/GPML_OPT_code';
+addpath(mydir(1:end-1))
+addpath([mydir,'cov'])
+addpath([mydir,'doc'])
+addpath([mydir,'inf'])
+addpath([mydir,'lik'])
+addpath([mydir,'mean'])
+addpath([mydir,'prior'])
+addpath([mydir,'util'])
+%% sample the function
+
+% r_2
+r_2_in = 0.1;
+r_2_out = 1.5;
+
+% \alpha_1 
+alpha1_in = 0;
+alpha1_out= 0.3;
+
+% \omega 
+omega_in = 2*pi*3/60; 
+omega_out = 2*pi*8/60; 
+
+% Range vector
+% [ r_2(in) r_2(out)]
+% [ alp(in) alp(out)]
+% [ omg(in) omg(out)]
+Range = [r_2_in r_2_out;alpha1_in alpha1_out;omega_in omega_out];
+
+
+% sampling process
+bins = 1000;
+dim = length(Range);
+x = samplingProject3(Range,bins,dim);
+
+% true objective generation from sampled data points
+tau_int = 1000;
+tau = 0:0.01:tau_int;
+y = zeros(length(x),1);
+Y0 = [pi/3;0];
+
+for i=1:length(x)
+    y(i,1) = ODEsim(Y0,tau,x(i,:));
+end
+
+%% train gaussian process surrogate
+
+% set the squared exponential covariance function
+covfunc = {@covMaterniso,1};  % @covSEiso
+hyp.cov = [log(0.3); log(1)]; % first component is log(l) and second is log(sigma)
+
+% set the likelihood function to Gaussian
+likfunc = @likGauss;
+sn = 0.25; %1e-16; % this is the noise level
+hyp.lik = log(sn);
+
+% maximize the likelihood function to find the hyperparameters
+hyp = minimize(hyp, @gp, -300, @infExact, [], covfunc,...
+    likfunc, x, y);
+
+
+%% Comparison of surrogate model with Chaotic ODE
+
+% Generate a 1-D slice of the function along \omega 
+z1 = 0.8;  % r_2 - constant
+z2 = 0.058; % \alpha_1 - constant
+Om = omega_in:0.005:omega_out; % range of omega
+
+z = [ones(length(Om),1)*z1 ones(length(Om),1)*z2 Om'];
+% surrogate approximates of the true objective (1-D slice)
+[m s2] = gp(hyp, @infExact, [], covfunc, likfunc, x, y, z); 
+
+m2 = zeros(length(Om),1);
+for i=1:length(Om)
+    % True objective values along the 1-D slice
+    m2(i) = ODEsim(Y0,tau,z(i,:));
+end
+
+% computing surrogate error
+surrErr = compareSurrogate(m,m2,Om);
+%% plot
+figure
+plot(Om,m); % surrogate model 
+hold on;
+grid on;
+plot(Om,m2); % Chaotic ODE
+xlabel('$\omega$','Interpreter','latex');
+ylabel('$\sigma(\frac{d\phi}{dt})$','Interpreter','latex');
+legend('Surrogate','Chaotic ODE');
+title('Checking accuracy of surrogate'...
+    ,'Interpreter','latex');
+
+figure
+plot(Om,m2);
+grid on
+xlabel('$\omega$','Interpreter','latex');
+ylabel('$\sigma(\frac{d\phi}{dt})$','Interpreter','latex');
+title('1-D slice of objective function');
+
+%% save variables
+fname = input('Enter file name:','s');
+save(fname,'x','y','Range','tau','hyp');
+##### SOURCE END #####
+--></body></html>

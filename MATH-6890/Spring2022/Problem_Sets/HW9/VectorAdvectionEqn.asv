@@ -1,0 +1,87 @@
+function VectorAdvectionEqn(N,nStep,tf,A,fOption)
+% function has 2 options for exact solution
+% fOption==1, A should be of size(3).
+
+% domain setup
+xlim1 = -1;
+xlim2 = 1;
+tlim1 = 0;
+tlim2 = tf;
+
+% calculated parameters
+dx = (xlim2-xlim1)/N;
+dt = (tlim2-tlim1)/nStep;
+
+% eigen value decomposition
+[m,~] = size(A);
+
+if (fOption==1)
+    assert(m==3,'Exact Solution choice has a mismatch in dimensions');
+elseif (fOption==2)
+    assert(m==2,'Exact Solution choice has a mismatch in dimensions');
+end
+[R,L] = eig(A);
+
+Lp = zeros(m);
+Lm = zeros(m);
+
+for i=1:m
+    if L(i,i)>=0
+        Lp(i,i) = L(i,i);
+    else
+        Lm(i,i) = L(i,i);
+    end
+end
+
+% domain discretization
+ng   = 1;
+NTot = N+1+2*ng;
+ja   = ng+1;
+jb   = NTot-ng;
+
+x    = (xlim1:dx:xlim2);
+x    = [xlim1-dx x xlim2+dx];
+t    = (tlim1:dt:tlim2);
+
+% setting solution variables
+w = zeros(m,NTot);
+u = zeros(m,NTot);
+
+for j=1:length(x)
+    w(:,j) = getEx(x(j),tlim1,L,fOption);
+end
+% set Boundary conditions
+w(:,ng)   = 2*getEx(xlim1,tlim1,L,fOption)-w(:,ja+1);
+w(:,NTot) = 2*getEx(xlim2,tlim1,L,fOption)-w(:,jb-1);
+
+u = R*w;
+
+for i=2:length(t)
+    wold = w;
+    for j=ja:jb
+        w(:,j) = wold(:,j)-Lp*(dt/dx)*(wold(:,j)-wold(:,j-1))-...
+                Lm*(dt/dx)*(wold(:,j+1)-wold(:,j));
+    end
+    % set 
+    w(:,ng)   = 2*getEx(xlim1,t(i),L,fOption)-w(:,ja+1);
+    w(:,NTot) = 2*getEx(xlim2,t(i),L,fOption)-w(:,jb-1);
+end
+
+end
+
+%% Functions
+function wex = getEx(x,t,L,fOption)
+% max dimension of the options is 3
+
+if fOption==1
+    % vector has dimension 3
+    wex(1,1) = exp(-(x+1)^2)*(x-L(1,1)*t);
+    wex(2,1) = exp(-x^2)*(x-L(2,2)*t);
+    wex(3,1) = exp(-(x-1)^2)*(x-L(3,3)*t);
+else
+    % vector has dimension 2
+    wex = zeros(2,1);
+end
+
+end
+

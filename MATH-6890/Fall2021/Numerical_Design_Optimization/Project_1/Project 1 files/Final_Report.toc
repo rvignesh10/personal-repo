@@ -1,0 +1,15 @@
+\contentsline {section}{\numberline {A}Introduction}{2}{appendix.A}
+\contentsline {section}{\numberline {B}Choice of Design Variables}{2}{appendix.B}
+\contentsline {subsection}{\numberline {B.1}Linear Parameterization}{2}{subsection.B.1}
+\contentsline {subsection}{\numberline {B.2}Sinusoidal Parameterization}{2}{subsection.B.2}
+\contentsline {subsection}{\numberline {B.3}Triangular Parameterization}{3}{subsection.B.3}
+\contentsline {section}{\numberline {C}Objective Function and Constraints}{3}{appendix.C}
+\contentsline {section}{\numberline {D}Setting up the Optimization Problem}{4}{appendix.D}
+\contentsline {section}{\numberline {E}Comparison of Preliminary Results}{4}{appendix.E}
+\contentsline {section}{\numberline {F}Convergence Study}{7}{appendix.F}
+\contentsline {section}{\numberline {G}Results and Inferences}{8}{appendix.G}
+\contentsline {section}{\numberline {H}Appendix}{10}{appendix.H}
+\contentsline {subsection}{\numberline {.1}Optimal points from Optimizer:}{10}{subsection.Alph0.1}
+\contentsline {subsection}{\numberline {.2}Optimizer convergence - Flux value V Iterations}{10}{subsection.Alph0.2}
+\contentsline {subsection}{\numberline {.3}Convergence Analysis}{11}{subsection.Alph0.3}
+\contentsline {subsection}{\numberline {.4}MATLAB Code}{12}{subsection.Alph0.4}

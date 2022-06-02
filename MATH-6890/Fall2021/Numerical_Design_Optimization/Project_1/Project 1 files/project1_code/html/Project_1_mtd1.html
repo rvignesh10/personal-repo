@@ -1,0 +1,315 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Project_1_mtd1</title><meta name="generator" content="MATLAB 9.10"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2021-09-23"><meta name="DC.source" content="Project_1_mtd1.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">Setting up Initial Starting point</a></li><li><a href="#3">Setting up Constraints Matrix</a></li><li><a href="#4">optimization algorithm - fmincon used</a></li><li><a href="#5">Plotting</a></li><li><a href="#6">Setting up Objective function</a></li><li><a href="#7">plot final profile</a></li><li><a href="#8">Calculate h - Profile height</a></li></ul></div><pre class="codeinput">clc
+clear <span class="string">all</span>
+</pre><h2 id="2">Setting up Initial Starting point</h2><p>a0 is starting point of DESIGN VARIABLE uses sinusoidal parameterization</p><pre class="codeinput"><span class="comment">%a0 = [3 0.1 0.5 0.3 0.8 0.2 0.9 1 1 0.1 0.1 0.1]';</span>
+<span class="comment">%a0 = [3 0 0 0 0 0 0 0 0 0 0]';</span>
+<span class="comment">%a0 = [3 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1]';</span>
+a0 = 0.12*ones(21,1); a0(1) = 3;
+<span class="comment">%a0 = ones(101,1); a0(1) = 3;a0(2:end) = rand(100,1);</span>
+<span class="comment">%a0 = ones(101,1); a0(1) = 3;a0(2:end) = -1+2*rand(100,1);</span>
+<span class="comment">%a0 = ones(31,1); a0(1) = 3;a0(2:end) = rand(30,1);</span>
+<span class="comment">%a0 = 0.5*ones(21,1); a0(1) = 3;</span>
+<span class="comment">%a0 = 0.11*ones(50,1); a0(1) = 3;</span>
+</pre><h2 id="3">Setting up Constraints Matrix</h2><p>Sets up the Constraints Matrix A which holds the coefficients that are linearly added up with design variables to generate the profile on the top</p><pre class="codeinput"><span class="comment">%--------------------------------------------------------------------------</span>
+
+hmin = 1; <span class="comment">% min height of radiator in cm</span>
+hmax = 5; <span class="comment">% max height of radiator in cm</span>
+L = 5; <span class="comment">% Length of Radiator in cm</span>
+n = length(a0); <span class="comment">% length of Design var</span>
+x = (0:0.02:5)'; <span class="comment">% descretization of x-axis</span>
+
+<span class="keyword">for</span> i=1:length(x)
+    <span class="keyword">for</span> j=1:length(a0)
+        <span class="keyword">if</span>(j==1)
+            A1(i,j) = 1;
+        <span class="keyword">else</span>
+            A1(i,j) = sin(2*pi*(j-1)*x(i)/L);
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+A = [A1;-A1];
+b = [ones(length(x),1)*hmax; -ones(length(x),1)*hmin];
+</pre><h2 id="4">optimization algorithm - fmincon used</h2><pre class="codeinput">options = optimoptions(@fmincon,<span class="string">'MaxIter'</span>,60,<span class="string">'Display'</span>,<span class="string">'iter'</span>);
+[X,fvalue,exitflag,output] = fmincon(@CalcFlux_obj,a0,A,b,[],[],<span class="keyword">...</span>
+    [],[],[],options);
+</pre><h2 id="5">Plotting</h2><pre class="codeinput">[flux_final,T_final,dTdX,XY] = plot_profile(X,a0);
+</pre><h2 id="6">Setting up Objective function</h2><p>It calls the functions - Calc_h to generate the profile which is a funciton of the design variable 'a' It calls upon the function CalcFlux.m to calculate the flux CalcFlux_obj returns the -Flux calculated by CalcFlux.m Objective function only requires input - the design variable 'a'</p><pre class="codeinput"><span class="comment">%--------------------------------------------------------------------------</span>
+
+<span class="keyword">function</span> Flux = CalcFlux_obj(a)
+    L = 5; <span class="comment">% cm</span>
+    Kappa = 20; <span class="comment">% W/(m.K)</span>
+    T_top = 20; <span class="comment">% deg cel</span>
+    T_btm = 90; <span class="comment">% deg cel</span>
+    x = (0:0.02:5)';
+
+    <span class="comment">% calculate h</span>
+    h = Calc_h(x,a,L);
+
+    <span class="comment">% set Nx and Ny</span>
+    nx = length(h)-1;
+    ny = 250;
+
+    <span class="comment">% Calculate Flux</span>
+    [Flux,~,~,~] = CalcFlux(L,h,nx,ny,Kappa,T_top,T_btm);
+
+    <span class="comment">% Negate Flux for maximization problem</span>
+    Flux = -1*Flux;
+<span class="keyword">end</span>
+</pre><h2 id="7">plot final profile</h2><p>This function generates a plot comparing the Optimized profile with the initial profile and also another plot containing the zoomed optimal profile This function takes inputs: X- Optimized design, a0 - initial design.</p><pre class="codeinput"><span class="comment">%--------------------------------------------------------------------------</span>
+
+<span class="keyword">function</span> [flux_final,T_final,dTdX,XY] =  plot_profile(X,a0)
+x = (0:0.02:5)';
+L = 5;
+T_top = 20;
+T_btm = 90;
+kappa = 20;
+h = Calc_h(x,X,L);
+nx = length(h)-1;
+ny = 150;
+[flux_final,T_final,dTdX,XY] = CalcFlux(L,h,nx,ny,kappa,T_top,T_btm);
+h0 = Calc_h(x,a0,L);
+figure(1);
+plot(x,h,<span class="string">'k'</span>);
+hold <span class="string">on</span>;
+plot(x,h0);
+plot([0,0],[0,h(1)],<span class="string">'k'</span>);
+plot([5,5],[0,h(end)],<span class="string">'k'</span>);
+plot([0,5],[0,0],<span class="string">'k'</span>);
+legend(<span class="string">'Optimized Profile'</span>,<span class="string">'Starting Profile'</span>,<span class="string">'Left Edge'</span>,<span class="keyword">...</span>
+    <span class="string">'Right Edge'</span>,<span class="string">'Width'</span>);
+axis([-2 7 -6 12]);
+title(<span class="string">'Optimized v Starting Profile'</span>);
+xlabel(<span class="string">'x'</span>);
+ylabel(<span class="string">'h'</span>);
+
+figure(2)
+plot(x,h,<span class="string">'k'</span>);
+title(<span class="string">'Optimized Profile - Zoomed'</span>);
+xlabel(<span class="string">'x'</span>);
+ylabel(<span class="string">'h'</span>);
+
+<span class="keyword">end</span>
+</pre><h2 id="8">Calculate h - Profile height</h2><p>Function returns the profile height h - h(x;a) Function takes inputs - x: discretization about X-axis, a: the design variable, L: Length of the heat exchanger</p><pre class="codeinput"><span class="comment">%--------------------------------------------------------------------------</span>
+
+<span class="keyword">function</span> h = Calc_h(x,a,L)
+<span class="comment">% Uses sinusoidal parameterization to create profile</span>
+<span class="comment">% h(x) = a(1) + sigma (a(j)*sin(2*pi*(j-1)*x(i)/L)) j:1(1)N</span>
+<span class="keyword">for</span> i=1:length(x)
+    S = 0;
+    <span class="keyword">for</span> j=2:length(a)
+        S = S + a(j)*sin(2*pi*(j-1)*x(i)/L);
+    <span class="keyword">end</span>
+    h(i,1) = a(1) + S;
+<span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2021a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+clc
+clear all
+%%  Setting up Initial Starting point
+% a0 is starting point of DESIGN VARIABLE
+% uses sinusoidal parameterization
+
+%a0 = [3 0.1 0.5 0.3 0.8 0.2 0.9 1 1 0.1 0.1 0.1]';
+%a0 = [3 0 0 0 0 0 0 0 0 0 0]';
+%a0 = [3 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1]';
+a0 = 0.12*ones(21,1); a0(1) = 3;
+%a0 = ones(101,1); a0(1) = 3;a0(2:end) = rand(100,1);
+%a0 = ones(101,1); a0(1) = 3;a0(2:end) = -1+2*rand(100,1);
+%a0 = ones(31,1); a0(1) = 3;a0(2:end) = rand(30,1); 
+%a0 = 0.5*ones(21,1); a0(1) = 3; 
+%a0 = 0.11*ones(50,1); a0(1) = 3;
+
+%% Setting up Constraints Matrix
+% Sets up the Constraints Matrix A which holds the coefficients that are
+% linearly added up with design variables to generate the profile on the
+% top
+%REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+
+hmin = 1; % min height of radiator in cm
+hmax = 5; % max height of radiator in cm
+L = 5; % Length of Radiator in cm
+n = length(a0); % length of Design var
+x = (0:0.02:5)'; % descretization of x-axis
+
+for i=1:length(x)
+    for j=1:length(a0)
+        if(j==1)
+            A1(i,j) = 1;
+        else
+            A1(i,j) = sin(2*pi*(j-1)*x(i)/L);
+        end
+    end    
+end
+
+A = [A1;-A1];
+b = [ones(length(x),1)*hmax; -ones(length(x),1)*hmin];
+%% optimization algorithm - fmincon used 
+
+options = optimoptions(@fmincon,'MaxIter',60,'Display','iter');
+[X,fvalue,exitflag,output] = fmincon(@CalcFlux_obj,a0,A,b,[],[],...
+    [],[],[],options);
+%% Plotting
+
+[flux_final,T_final,dTdX,XY] = plot_profile(X,a0);
+%% Setting up Objective function
+% It calls the functions - Calc_h to generate the profile which is a
+% funciton of the design variable 'a'
+% It calls upon the function CalcFlux.m to calculate the flux
+% CalcFlux_obj returns the -Flux calculated by CalcFlux.m
+% Objective function only requires input - 
+% the design variable 'a' 
+%REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+
+function Flux = CalcFlux_obj(a)
+    L = 5; % cm
+    Kappa = 20; % W/(m.K) 
+    T_top = 20; % deg cel
+    T_btm = 90; % deg cel
+    x = (0:0.02:5)';
+    
+    % calculate h
+    h = Calc_h(x,a,L);
+    
+    % set Nx and Ny
+    nx = length(h)-1;
+    ny = 250;
+    
+    % Calculate Flux
+    [Flux,~,~,~] = CalcFlux(L,h,nx,ny,Kappa,T_top,T_btm);
+    
+    % Negate Flux for maximization problem
+    Flux = -1*Flux;
+end
+
+%% plot final profile
+% This function generates a plot comparing the Optimized profile with
+% the initial profile and also another plot containing the zoomed optimal
+% profile
+% This function takes inputs: 
+% X- Optimized design, 
+% a0 - initial design. 
+%REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+
+function [flux_final,T_final,dTdX,XY] =  plot_profile(X,a0)
+x = (0:0.02:5)';
+L = 5;
+T_top = 20;
+T_btm = 90;
+kappa = 20;
+h = Calc_h(x,X,L);
+nx = length(h)-1;
+ny = 150;
+[flux_final,T_final,dTdX,XY] = CalcFlux(L,h,nx,ny,kappa,T_top,T_btm);
+h0 = Calc_h(x,a0,L);
+figure(1);
+plot(x,h,'k');
+hold on;
+plot(x,h0);
+plot([0,0],[0,h(1)],'k');
+plot([5,5],[0,h(end)],'k');
+plot([0,5],[0,0],'k');
+legend('Optimized Profile','Starting Profile','Left Edge',...
+    'Right Edge','Width');
+axis([-2 7 -6 12]);
+title('Optimized v Starting Profile');
+xlabel('x');
+ylabel('h');
+
+figure(2)
+plot(x,h,'k');
+title('Optimized Profile - Zoomed');
+xlabel('x');
+ylabel('h');
+
+end
+%% Calculate h - Profile height
+% Function returns the profile height h - h(x;a)
+% Function takes inputs - 
+% x: discretization about X-axis, 
+% a: the design variable,
+% L: Length of the heat exchanger 
+%REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+
+function h = Calc_h(x,a,L)
+% Uses sinusoidal parameterization to create profile
+% h(x) = a(1) + sigma (a(j)*sin(2*pi*(j-1)*x(i)/L)) j:1(1)N
+for i=1:length(x)
+    S = 0;
+    for j=2:length(a)
+        S = S + a(j)*sin(2*pi*(j-1)*x(i)/L);
+    end
+    h(i,1) = a(1) + S;
+end
+end
+##### SOURCE END #####
+--></body></html>

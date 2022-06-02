@@ -1,0 +1,11 @@
+\contentsline {figure}{\numberline {1}{\ignorespaces Illustration of Heat Exchanger Design Problem\relax }}{2}{figure.caption.4}
+\contentsline {figure}{\numberline {2}{\ignorespaces Profile based on different Parameterization\relax }}{3}{figure.caption.5}
+\contentsline {figure}{\numberline {3}{\ignorespaces Optimized Profile using Linear Parameterization\relax }}{4}{figure.caption.6}
+\contentsline {figure}{\numberline {4}{\ignorespaces Flux v Iterations - Linear\relax }}{5}{figure.caption.7}
+\contentsline {figure}{\numberline {5}{\ignorespaces Optimized Profile using Sinusoidal Parameterization\relax }}{5}{figure.caption.8}
+\contentsline {figure}{\numberline {6}{\ignorespaces Flux v Iteration - Sinusoidal\relax }}{6}{figure.caption.9}
+\contentsline {figure}{\numberline {7}{\ignorespaces Optimized Profile using Triangular Parameterization\relax }}{6}{figure.caption.10}
+\contentsline {figure}{\numberline {8}{\ignorespaces Flux v Iteration - Triangular\relax }}{7}{figure.caption.11}
+\contentsline {figure}{\numberline {9}{\ignorespaces Increase of flux with certain aspects of design variable $a$\relax }}{7}{figure.caption.12}
+\contentsline {figure}{\numberline {10}{\ignorespaces Convergence of Final Flux value with increasing mesh refinement\relax }}{8}{figure.caption.13}
+\contentsline {figure}{\numberline {11}{\ignorespaces Optimal Profile if starting with an infeasible point\relax }}{9}{figure.caption.14}

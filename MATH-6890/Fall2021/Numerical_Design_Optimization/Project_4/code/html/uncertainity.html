@@ -1,0 +1,187 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Calculate the mean statistics of stresses and displacement due to uncertainties</title><meta name="generator" content="MATLAB 9.10"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2021-12-09"><meta name="DC.source" content="uncertainity.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Calculate the mean statistics of stresses and displacement due to uncertainties</h1><pre class="codeinput"><span class="keyword">function</span> [mStress,stdDevStress,m_u,stdDevu] = uncertainity(zmax,f_nom,Iyy,E,L,Nelem)
+<span class="comment">% Inputs - zmax   - R_out values at each node point - array of size [Nelem+1 ,1]</span>
+<span class="comment">%          f_nom  - nominal force values at the node locations</span>
+<span class="comment">%          Iyy    - Area Moment of Inertia at each node location</span>
+<span class="comment">%          E      - Young's Modulus</span>
+<span class="comment">%          L      - Length of the Spar</span>
+<span class="comment">%          Nelem  - Num of elements</span>
+<span class="comment">% Outputs- mStress- mean normal stress due to uncertain loading at each</span>
+<span class="comment">%                   nodal location</span>
+<span class="comment">%     stdDevStress- standard deviation of normal stress due to uncertain</span>
+<span class="comment">%                   loading at nodal location</span>
+<span class="comment">%             m_u - Mean Displacement due to uncertain loading</span>
+<span class="comment">%          stdDevu- standard deviaiton of displacement due to uncertain</span>
+<span class="comment">%                   loading</span>
+
+<span class="comment">% using a 3 point Gaussian quadrature rule .</span>
+xi = [-1.22474487139; 0.0; 1.22474487139];
+wt = [0.295408975151; 1.1816359006; 0.295408975151]./sqrt(pi);
+<span class="comment">% standard deviation of the perturbation variables .</span>
+sigma1 = f_nom(1)/10; sigma2 = f_nom(1)/20;
+sigma3 = f_nom(1)/30; sigma4 = f_nom(1)/40;
+
+mStress = 0;
+m_sqStress = 0;
+m_u = 0;
+m_u2 = 0;
+<span class="keyword">for</span> i1 = 1:length(xi)
+    pt1 = sqrt(2)*sigma1*xi(i1);
+    <span class="keyword">for</span> i2 = 1:length(xi)
+        pt2 = sqrt(2)*sigma2*xi(i2);
+        <span class="keyword">for</span> i3 = 1:length(xi)
+            pt3 = sqrt(2)*sigma3*xi(i3);
+            <span class="keyword">for</span> i4 = 1:length(xi)
+                pt4 = sqrt(2)*sigma4*xi(i4);
+                D = Delta(pt1,pt2,pt3,pt4,L,Nelem);
+                f_u = f_nom + D;
+                u_u = CalcBeamDisplacement(L,E,Iyy,f_u,Nelem);
+                stress_u = CalcBeamStress(L,E,zmax,u_u,Nelem);
+                <span class="comment">% compute mean stress</span>
+                mStress = mStress + wt(i1)*wt(i2)*wt(i3)*wt(i4)*stress_u;
+                <span class="comment">% compute mean stress square</span>
+                m_sqStress = m_sqStress + wt(i1)*wt(i2)*wt(i3)*wt(i4).*stress_u.*stress_u;
+                <span class="comment">% compute mean displacement</span>
+                m_u = m_u + wt(i1)*wt(i2)*wt(i3)*wt(i4)*u_u;
+                <span class="comment">% compute mean displacement square</span>
+                m_u2 = m_u2 + wt(i1)*wt(i2)*wt(i3)*wt(i4)*u_u.*u_u;
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+<span class="comment">% calculate standard deviaiton of stress</span>
+stdDevStress = sqrt(m_sqStress - mStress.^2);
+
+<span class="comment">% calculate standard deviation of displacement</span>
+stdDevu = sqrt(m_u2 - m_u.^2);
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2021a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Calculate the mean statistics of stresses and displacement due to uncertainties
+
+function [mStress,stdDevStress,m_u,stdDevu] = uncertainity(zmax,f_nom,Iyy,E,L,Nelem)
+% Inputs - zmax   - R_out values at each node point - array of size [Nelem+1 ,1]
+%          f_nom  - nominal force values at the node locations
+%          Iyy    - Area Moment of Inertia at each node location
+%          E      - Young's Modulus
+%          L      - Length of the Spar
+%          Nelem  - Num of elements 
+% Outputs- mStress- mean normal stress due to uncertain loading at each
+%                   nodal location      
+%     stdDevStress- standard deviation of normal stress due to uncertain
+%                   loading at nodal location
+%             m_u - Mean Displacement due to uncertain loading
+%          stdDevu- standard deviaiton of displacement due to uncertain
+%                   loading
+
+% using a 3 point Gaussian quadrature rule . 
+xi = [-1.22474487139; 0.0; 1.22474487139];
+wt = [0.295408975151; 1.1816359006; 0.295408975151]./sqrt(pi);
+% standard deviation of the perturbation variables . 
+sigma1 = f_nom(1)/10; sigma2 = f_nom(1)/20;
+sigma3 = f_nom(1)/30; sigma4 = f_nom(1)/40;
+
+mStress = 0;
+m_sqStress = 0;
+m_u = 0;
+m_u2 = 0;
+for i1 = 1:length(xi)
+    pt1 = sqrt(2)*sigma1*xi(i1);
+    for i2 = 1:length(xi)
+        pt2 = sqrt(2)*sigma2*xi(i2);
+        for i3 = 1:length(xi)
+            pt3 = sqrt(2)*sigma3*xi(i3);
+            for i4 = 1:length(xi)
+                pt4 = sqrt(2)*sigma4*xi(i4);
+                D = Delta(pt1,pt2,pt3,pt4,L,Nelem);
+                f_u = f_nom + D;
+                u_u = CalcBeamDisplacement(L,E,Iyy,f_u,Nelem);
+                stress_u = CalcBeamStress(L,E,zmax,u_u,Nelem);
+                % compute mean stress
+                mStress = mStress + wt(i1)*wt(i2)*wt(i3)*wt(i4)*stress_u;
+                % compute mean stress square
+                m_sqStress = m_sqStress + wt(i1)*wt(i2)*wt(i3)*wt(i4).*stress_u.*stress_u;
+                % compute mean displacement
+                m_u = m_u + wt(i1)*wt(i2)*wt(i3)*wt(i4)*u_u;
+                % compute mean displacement square
+                m_u2 = m_u2 + wt(i1)*wt(i2)*wt(i3)*wt(i4)*u_u.*u_u;
+            end
+        end
+    end
+end
+% calculate standard deviaiton of stress
+stdDevStress = sqrt(m_sqStress - mStress.^2);
+
+% calculate standard deviation of displacement
+stdDevu = sqrt(m_u2 - m_u.^2);
+end
+##### SOURCE END #####
+--></body></html>

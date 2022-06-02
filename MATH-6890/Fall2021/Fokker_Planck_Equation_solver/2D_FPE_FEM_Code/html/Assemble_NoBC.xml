@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mscript xmlns:mwsh="http://www.mathworks.com/namespace/mcode/v1/syntaxhighlight.dtd">
+   <version>9.10</version>
+   <release>2021a</release>
+   <date>2021-11-30</date>
+   <cell>
+      <count>1</count>
+      <mcode>function [i_append, j_append, val_append] = Assemble_NoBC(m,fespace)</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve"><mwsh:keywords xml:space="preserve">function</mwsh:keywords> [i_append, j_append, val_append] = Assemble_NoBC(m,fespace)</mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>1</mcode-count>
+   </cell>
+   <cell>
+      <count>2</count>
+      <steptitle>Function : Assemble_NoBC</steptitle>
+      <text>
+         <p>
+            <equation>
+               <img alt="$Author : Vignesh Ramakrishnan$" class="equation" height="11px" scale="2"
+                    src="Assemble_NoBC_eq08844000599643817980.png"
+                    width="162px"/>
+            </equation> 
+            <equation>
+               <img alt="$RIN : 662028006$" class="equation" height="8px" scale="2"
+                    src="Assemble_NoBC_eq16882365056302381395.png"
+                    width="83px"/>
+            </equation>  
+            <equation>
+               <img alt="$Date : November 21, 2021$" class="equation" height="10px" scale="2"
+                    src="Assemble_NoBC_eq11291278428502898177.png"
+                    width="122px"/>
+            </equation> 
+            <equation>
+               <img alt="$Code Version: 1.0$" class="equation" height="8px" scale="2"
+                    src="Assemble_NoBC_eq16420308406467505939.png"
+                    width="88px"/>
+            </equation> This function performs the act of assembling the local element stiffness matrix to the Global Stiffness matrix. Inputs : m          - local element stiffness matrix to assemble          fespace    - the finite element space of the corresponding element Outputs: i_append   - the 'i' idx of the Global Sparse Matrix to append          j_append   - the 'j' idx of the Global Sparse Matrix to append          val_append - the value to add at the 'i,j' location of the                       Global Sparse Matrix</p>
+      </text>
+      <mcode>% No Boundary conditions are applied in this assembly process
+
+i_append = [];
+j_append = [];
+val_append = [];
+
+n = length(m);
+k = 1;
+
+for i=1:n
+    eq_num = fespace.ElemDOF(i);
+        for j=1:n
+            col = fespace.ElemDOF(j);
+            i_append(k,1) = eq_num;
+            j_append(k,1) = col;
+            val_append(k,1) = m(i,j);
+            k = k + 1;
+        end
+end</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve"><mwsh:comments xml:space="preserve">% No Boundary conditions are applied in this assembly process</mwsh:comments>
+
+i_append = [];
+j_append = [];
+val_append = [];
+
+n = length(m);
+k = 1;
+
+<mwsh:keywords xml:space="preserve">for</mwsh:keywords> i=1:n
+    eq_num = fespace.ElemDOF(i);
+        <mwsh:keywords xml:space="preserve">for</mwsh:keywords> j=1:n
+            col = fespace.ElemDOF(j);
+            i_append(k,1) = eq_num;
+            j_append(k,1) = col;
+            val_append(k,1) = m(i,j);
+            k = k + 1;
+        <mwsh:keywords xml:space="preserve">end</mwsh:keywords>
+<mwsh:keywords xml:space="preserve">end</mwsh:keywords></mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>2</mcode-count>
+      <cellOutputTarget>2</cellOutputTarget>
+   </cell>
+   <cell>
+      <count>3</count>
+      <mcode>end</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve"><mwsh:keywords xml:space="preserve">end</mwsh:keywords></mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>3</mcode-count>
+      <cellOutputTarget>1</cellOutputTarget>
+   </cell>
+   <originalCode>function [i_append, j_append, val_append] = Assemble_NoBC(m,fespace)
+%% Function : Assemble_NoBC
+% $Author : Vignesh Ramakrishnan$ 
+% $RIN : 662028006$  $Date : November 21, 2021$
+% $Code Version: 1.0$
+% This function performs the act of assembling the local element stiffness
+% matrix to the Global Stiffness matrix. 
+% Inputs : m          - local element stiffness matrix to assemble 
+%          fespace    - the finite element space of the corresponding element
+% Outputs: i_append   - the 'i' idx of the Global Sparse Matrix to append
+%          j_append   - the 'j' idx of the Global Sparse Matrix to append
+%          val_append - the value to add at the 'i,j' location of the
+%                       Global Sparse Matrix
+
+% No Boundary conditions are applied in this assembly process
+
+i_append = [];
+j_append = [];
+val_append = [];
+
+n = length(m);
+k = 1;
+
+for i=1:n
+    eq_num = fespace.ElemDOF(i);
+        for j=1:n
+            col = fespace.ElemDOF(j);
+            i_append(k,1) = eq_num;
+            j_append(k,1) = col;
+            val_append(k,1) = m(i,j);
+            k = k + 1;  
+        end
+end
+
+end</originalCode>
+   <m-file>Assemble_NoBC</m-file>
+   <filename>/Users/vignesh/Desktop/RPI/Fall 2021/FEM/Project/2D_FPE_FEM/Assemble_NoBC.m</filename>
+   <outputdir>/Users/vignesh/Desktop/RPI/Fall 2021/FEM/Project/2D_FPE_FEM/html</outputdir>
+</mscript>
