@@ -1,6 +1,7 @@
 #ifndef GEOMETRY_HPP
 #define GEOMETRY_HPP
 
+#include "MatrixAlgebra.hpp"
 
 enum Geom {invalid=-1, point=0, segment=1, triangle=2, quadrilateral=3};
 
@@ -40,15 +41,11 @@ public:
     
 };
 
-// class SEGMENT {
-// private:
-//     POINT p[2];
-//     int bdr_seg;
-// public:
-//     void AddPoints(Point a, Point b){
-//         p[0] = a; p[1] = b;
-//     }
-// };
+struct QuadratureNode {
+    double int_x, int_y;
+    double int_wt;
+    double det_jacobian;
+};
 
 
 #endif

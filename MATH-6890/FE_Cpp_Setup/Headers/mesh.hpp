@@ -14,12 +14,14 @@ private:
     int dim;
     double x1, x2, y1, y2;
     int num_elem;
+    int num_nodes;
 public:
     void Make1DCartesian(double x_left, double x_right);
     void Make2DCartesian(double x_left, double x_right, double y_bottom, double y_top, Geom g);
     void MakeRectMesh();
     void MakeTriMesh();
     int GetNE(){return num_elem;}
+    Element<degree>* GetElement(int i);
     ~Mesh(){
         delete[] e;
         delete[] nodes;
@@ -37,28 +39,31 @@ void Mesh<nx,ny,degree>::Make1DCartesian(double x_left, double x_right){
     double dx = (x2-x1)/(double)(nx);
 
     nodes = new POINT[degree*num_elem + 1];
+    num_nodes = degree*num_elem + 1;
     for (int i=0; i<nx*degree+1; i++){
-        nodes[i].setCoordinates(x1+(double)(i)*(dx)/(double)(degree),0.);
-        nodes[i].setIdx(i+1);
+        (nodes+i)->setCoordinates(x1+(double)(i)*(dx)/(double)(degree),0.);
+        (nodes+i)->setIdx(i+1);
+        
         if (i==0 || i==nx*degree){
-            nodes[i].setAttribute(1);
+            (nodes+i)->setAttribute(1);
         }
         else{
-            nodes[i].setAttribute(0);
+            (nodes+i)->setAttribute(0);
         }
+
     }
     
 
     int k = 0;
     for (int i=0; i<nx; i++){
         if (i==0 || i==nx-1){
-            e[i].Init(i+1, segment, 1);
+            (e+i)->Element<degree>::Init(i+1, segment, 1);
         }
         else{
-            e[i].Init(i+1, segment, 0);
+            (e+i)->Element<degree>::Init(i+1, segment, 0);
         }
         for (int j=0; j<=degree; j++){
-            e[i].AddVertex(nodes[k], j);
+            (e+i)->Element<degree>::AddVertex((nodes+k), j);
             ++k;
         }
         k-=1;
@@ -86,40 +91,43 @@ template<const int nx, const int ny, const int degree>
 void Mesh<nx,ny,degree>::MakeRectMesh(){
     e = new Element<degree>[nx*ny];
     num_elem = nx*ny;
-    double dx = (x2-x1)/(double)(nx);
-    double dy = (y2-y1)/(double)(ny);
+    double dx = (x2-x1)/((double)(nx));
+    double dy = (y2-y1)/((double)(ny));
 
     nodes = new POINT[(nx*degree+1)*(ny*degree+1)];
+    num_nodes = (nx*degree+1)*(ny*degree+1);
     int count = 0;
     for (int j=0; j<ny*degree+1; j++){
         for (int i=0; i<nx*degree+1; i++){
-            nodes[count].setCoordinates(x1+(double)(i)*dx/(double)(degree),
-                                        x2+(double)(j)*dy/(double)(degree));
-            nodes[count].setIdx(count+1);
+            (nodes+count)->setCoordinates(x1+(double)(i)*(dx)/((double)(degree)),
+                                        y1+(double)(j)*(dy)/((double)(degree)));
+            (nodes+count)->setIdx(count+1);
             if (i==0 || i==nx*degree || j==0 || j==ny*degree){
-                nodes[count].setAttribute(1);
+                (nodes+count)->setAttribute(1);
             }
             else{
-                nodes[count].setAttribute(0);
+                (nodes+count)->setAttribute(0);
             }
             ++count;
         }
     }
 
     int el_count = 0;
-    for (int j=0; j<ny; j++){
-        for (int i=0; i<nx; i++){
+    for (int J=0; J<ny; J++){
+        int j = J*degree;
+        for (int I=0; I<nx; I++){
+            int i = I*degree;
             count = 0;
-            if (i==0 || i==nx-1 || j==0 || j==ny-1){
+            if (I==0 || I==nx-1 || J==0 || J==ny-1){
                 // boundary elements marked 1
-                e[el_count].Init(el_count+1, quadrilateral, 1);
+                (e+el_count)->Element<degree>::Init(el_count+1, quadrilateral, 1);
             }
             else{
-                e[el_count].Init(el_count+1, quadrilateral, 0);
+                (e+el_count)->Element<degree>::Init(el_count+1, quadrilateral, 0);
             }
             for (int l=0; l<degree+1; l++){
                 for (int m=0; m<degree+1; m++){
-                    e[el_count].AddVertex(nodes[(j+l)*(nx*degree+1)+(i+m)],count);
+                    (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
                     ++count;
                 }
             }
@@ -135,46 +143,60 @@ void Mesh<nx,ny,degree>::MakeTriMesh(){
     double dy = (y2-y1)/(double)(ny);
 
     nodes = new POINT[(nx*degree+1)*(ny*degree+1)];
+    num_nodes = (nx*degree+1)*(ny*degree+1);
     int count = 0;
     for (int j=0; j<ny*degree+1; j++){
         for (int i=0; i<nx*degree+1; i++){
-            nodes[count].setCoordinates(x1+(double)(i)*dx/(double)(degree),
-                                        x2+(double)(j)*dy/(double)(degree));
-            nodes[count].setIdx(count+1);
+            (nodes+count)->setCoordinates(x1+(double)(i)*dx/(double)(degree),
+                                        y1+(double)(j)*dy/(double)(degree));
+            (nodes+count)->setIdx(count+1);
             if (i==0 || i==nx*degree || j==0 || j==ny*degree){
-                nodes[count].setAttribute(1);
+                (nodes+count)->setAttribute(1);
             }
             else{
-                nodes[count].setAttribute(0);
+                (nodes+count)->setAttribute(0);
             }
             ++count;
         }
     }
 
     int el_count = 0;
-    for (int j=0; j<ny; j++){
-        for (int i=0; i<nx; i++){
-            // lower triangle
-            e[el_count].Init(el_count+1, triangle, 0); 
+    for (int J=0; J<ny; J++){
+        int j = J*degree;
+        for (int I=0; I<nx; I++){
+            int i = I*degree;
+            // upper triangle
+            (e+el_count)->Element<degree>::Init(el_count+1, triangle, 0); 
             count = 0;
-            for (int m=0; m<degree+1; m++){
-                for (int l=m; l<degree+1; l++){
-                    e[el_count].AddVertex(nodes[(j+l)*(nx*degree+1)+(i+m)],count);
+            for (int l=0; l<degree+1; l++){
+                for (int m=0; m<=l; m++){
+                    (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
                     ++count;
                 }
             }
             ++el_count;
-            //upper triangle
-            e[el_count].Init(el_count+1, triangle, 0); 
+            //lower triangle
+            (e+el_count)->Element<degree>::Init(el_count+1, triangle, 0); 
             count = 0;
-            for(int l=0; l<degree+1; l++){
-                for (int m=0; m<l; m++){
-                    e[el_count].AddVertex(nodes[(j+l)*(nx*degree+1)+(i+m)],count);
+            for(int l=degree; l>=0; l--){
+                for (int m=degree; m>=l; m--){
+                    (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
                     ++count;
                 }
             }
             ++el_count;
         }
+    }
+}
+// use element number for i
+template<const int nx, const int ny, const int degree>
+Element<degree>* Mesh<nx,ny,degree>::GetElement(int i){
+    if (i >=1 && i <= num_elem){
+        return e+i-1;
+    }
+    else{
+        std::cerr << "inaccessbile element ID \n";
+        return nullptr;
     }
 }
 
