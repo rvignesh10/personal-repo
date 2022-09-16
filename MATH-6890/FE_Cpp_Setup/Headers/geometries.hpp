@@ -44,7 +44,7 @@ public:
 struct QuadratureNode {
     double int_x, int_y;
     double int_wt;
-    double det_jacobian;
+    double det_jacobian; 
 };
 
 
