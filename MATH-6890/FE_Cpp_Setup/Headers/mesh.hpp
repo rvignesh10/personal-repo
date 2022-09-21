@@ -26,6 +26,7 @@ public:
     int GetDim(){return dim;}
     Geom GetGeometry() {return geometry;}
     void ElemTransformation(int idx,Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta, Vector<double> &w);
+    void GetElemIEN(int idx, Vector<int> &local_ien);
     Element<degree>* GetElement(int i);
     ~Mesh(){
         delete[] e;
@@ -193,11 +194,23 @@ void Mesh<nx,ny,degree>::MakeTriMesh(){
             (e+el_count)->Element<degree>::Init(el_count+1, geometry, 0); 
             count = 0;
             for(int l=degree; l>=0; l--){
-                for (int m=degree; m>=l; m--){
+                for(int m=l; m<degree+1; m++){
                     (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
                     ++count;
                 }
             }
+            // for(int l=degree; l>=0; l--){
+            //     for (int m=degree; m>=l; m--){
+            //         (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
+            //         ++count;
+            //     }
+            // }
+            // for(int l=0; l<degree+1; l++){
+            //     for(int m=0; m<=l; m++){
+            //         (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
+            //         ++count;
+            //     }
+            // }
             ++el_count;
         }
     }
@@ -207,6 +220,11 @@ template<int nx, int ny, int degree>
 void Mesh<nx,ny,degree>::ElemTransformation(int idx, Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta,Vector<double> &w){
     // std::cout << "elem idx :" << idx << "\n";
     (e+idx)->Element<degree>::ElemTransformation(N,dNdxi,dNdeta,w);
+}
+
+template<int nx, int ny, int degree>
+void Mesh<nx,ny,degree>::GetElemIEN(int idx, Vector<int> &local_ien){
+    (e+idx)->Element<degree>::LocalIEN(local_ien);
 }
 
 // use element number for i

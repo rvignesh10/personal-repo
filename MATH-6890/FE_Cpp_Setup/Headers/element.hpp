@@ -33,6 +33,7 @@ public:
     void setQuadrature(int i, double x, double y, double weight);
     void getQuadrature(int dir, Vector<double> &q_dir);
     void ElemTransformation(Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta, Vector<double> &w);
+    void LocalIEN(Vector<int> &local_ien);
     void printElementNodes();
     ~Element(){
         delete[] p;
@@ -262,6 +263,21 @@ void Element<degree>::ElemTransformation(Matrix<double> &N, Matrix<double> &dNdx
         this->setQuadrature(i, xq, yq, w.getValue(i));
     }
 
+}
+
+template<int degree>
+void Element<degree>::LocalIEN(Vector<int> &local_ien){
+    local_ien.setSize(sizeof_p);
+    for(int i=0; i<sizeof_p; i++){
+        if((p+i)->getAttribute() == 0){
+            local_ien.setValue(i, (p+i)->getIdx());
+        }
+        else{
+            local_ien.setValue(i, -1);
+            //local_ien.setValue(i, (p+i)->getIdx());
+        }
+        
+    }
 }
 
 template<int degree>

@@ -5,25 +5,25 @@
 #include <math.h>
 
 template<int degree>
-class H1_FiniteElement_UnitSegment : public Element<degree> {
+class H1_FiniteElement_BiUnitSegment : public Element<degree> {
 protected:
     Matrix<double> N;
     Matrix<double> dNdxi;
     Matrix<double> dNdeta;
 public:
-    H1_FiniteElement_UnitSegment();
+    H1_FiniteElement_BiUnitSegment();
     void Init_UnitSegment();
     void calcShapeFunction();
     void getShapeFns(Matrix<double> &m_in1, Matrix<double> &m_in2, Matrix<double> &m_in3){m_in1 = N; m_in2 = dNdxi; m_in3 = dNdeta;}
 };
 
 template<int degree>
-H1_FiniteElement_UnitSegment<degree>::H1_FiniteElement_UnitSegment(){
+H1_FiniteElement_BiUnitSegment<degree>::H1_FiniteElement_BiUnitSegment(){
 //    Init_UnitSegment();
 }
 
 template<int degree>
-void H1_FiniteElement_UnitSegment<degree>::Init_UnitSegment(){
+void H1_FiniteElement_BiUnitSegment<degree>::Init_UnitSegment(){
     this->Element<degree>::Init_(segment);
     for (int i=0; i<degree+1; i++){
         POINT t(-1+(double)(i)*(2./(double)(degree)), 0.);
@@ -38,11 +38,11 @@ void H1_FiniteElement_UnitSegment<degree>::Init_UnitSegment(){
     N.setSize(degree+1, n);  
     dNdxi.setSize(degree+1, n);
     dNdeta.setSize(degree+1,n);
-    H1_FiniteElement_UnitSegment<degree>::calcShapeFunction(); 
+    H1_FiniteElement_BiUnitSegment<degree>::calcShapeFunction(); 
 }
 
 template<int degree>
-void H1_FiniteElement_UnitSegment<degree>::calcShapeFunction(){
+void H1_FiniteElement_BiUnitSegment<degree>::calcShapeFunction(){
     Vector<double> xi;
     Vector<double> quad;
     this->Element<degree>::getVertexLoc(1, xi);
@@ -82,15 +82,20 @@ void H1_FiniteElement_UnitSegment<degree>::calcShapeFunction(){
             this->dNdxi.setValue(k,j,sum);
         }
     }
-    N.displayMatrix();
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------- */
 template<int degree>
 class H1_FiniteElement_UnitTriangle : public Element<degree> {
+protected:
+    Matrix<double> N;
+    Matrix<double> dNdxi;
+    Matrix<double> dNdeta;
 public:
     H1_FiniteElement_UnitTriangle();
     void Init_UnitTriangle();
+    void calcShapeFunction();
+    void getShapeFns(Matrix<double> &m_in1, Matrix<double> &m_in2, Matrix<double> &m_in3){m_in1 = N; m_in2 = dNdxi; m_in3 = dNdeta;}
 };
 
 template<int degree>
@@ -111,7 +116,98 @@ void H1_FiniteElement_UnitTriangle<degree>::Init_UnitTriangle(){
     }
     this->Element<degree>::setQuadrature(0, 2./3., 1./6., 1./3.);
     this->Element<degree>::setQuadrature(1, 1./6., 1./6., 1./3.);
-    this->Element<degree>::setQuadrature(2, 1./6., 2./3., 1./3.);    
+    this->Element<degree>::setQuadrature(2, 1./6., 2./3., 1./3.);  
+    int n = this->sizeof_q;
+    switch (degree)
+    {
+    case 1:{
+        this->N.setSize(3,n);
+        this->dNdxi.setSize(3,n);
+        this->dNdeta.setSize(3,n);
+        break;
+    }
+    case 2:{
+        this->N.setSize(6,n);
+        this->dNdxi.setSize(6,n);
+        this->dNdeta.setSize(6,n);
+        break;
+    }
+    case 3:{
+        this->N.setSize(10,n);
+        this->dNdxi.setSize(10,n);
+        this->dNdeta.setSize(10,n);
+        break;
+    }
+    default:{
+        std::cerr << "Polynomial order > 3 not supported \n";
+        break;
+    }    
+    }
+    H1_FiniteElement_UnitTriangle<degree>::calcShapeFunction();
+}
+
+template<int degree>
+void H1_FiniteElement_UnitTriangle<degree>::calcShapeFunction(){
+
+    Vector<double> quad_xi, quad_eta;
+    this->Element<degree>::getQuadrature(1, quad_xi);
+    this->Element<degree>::getQuadrature(2, quad_eta);
+
+    switch (degree)
+    {
+    case 1:{
+        for(int k=0; k<quad_xi.getLength_(); k++){
+            double r = quad_xi.getValue(k);
+            double s = quad_eta.getValue(k);
+            this->N.setValue(0, k, s);
+            this->N.setValue(1, k, 1.-s-r);
+            this->N.setValue(2, k, r);
+
+            this->dNdxi.setValue(0, k, 0.);
+            this->dNdxi.setValue(1, k, -1.);
+            this->dNdxi.setValue(2, k, 1.);
+
+            this->dNdeta.setValue(0, k, 1.);
+            this->dNdeta.setValue(1, k, -1.);
+            this->dNdeta.setValue(2, k, 0.);
+        }
+        break;
+    }
+    case 2:{
+        for(int k=0; k<quad_xi.getLength_(); k++){
+            double r = quad_xi.getValue(k);
+            double s = quad_eta.getValue(k);
+            double t = 1. - r - s;
+            this->N.setValue(0, k, s*(2.*s - 1.));
+            this->N.setValue(1, k, 4.*s*t);
+            this->N.setValue(2, k, 4.*r*s);
+            this->N.setValue(3, k, t*(2.*t - 1.));
+            this->N.setValue(4, k, 4.*r*t);
+            this->N.setValue(5, k, r*(2.*r - 1.));
+
+            this->dNdxi.setValue(0, k, 0.); this->dNdeta.setValue(0, k, 4.*s - 1.);
+            this->dNdxi.setValue(1, k, -4.*s); this->dNdeta.setValue(1, k, 4.- 8.*s -4.*r);
+            this->dNdxi.setValue(2, k, 4.*s); this->dNdeta.setValue(2, k, 4.*r);
+            this->dNdxi.setValue(3, k, -3.+ 4.*s + 4.*r); this->dNdeta.setValue(3, k, -3.+ 4.*s + 4.*r);
+            this->dNdxi.setValue(4, k, 4. - 4.*s - 8.*r); this->dNdeta.setValue(4, k, -4.*r);
+            this->dNdxi.setValue(5, k, 4.*r - 1.); this->dNdeta.setValue(5, k, 0.);
+        }
+        break;
+    }
+    case 3:{
+        for (int k=0; k<quad_xi.getLength_(); k++){
+            double r = quad_xi.getValue(k);
+            double s = quad_eta.getValue(k);
+            double t = 1. - r - s;
+        }
+        break;
+    }
+    default:{
+        std::cerr << "Polynomial order > 3 not supported \n";
+        break;
+    }
+    }
+
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------- */
@@ -261,7 +357,7 @@ void H1_FiniteElement_BiUnitSquare<degree>::calcShapeFunction(){
 template<int degree>
 class H1_FiniteElement : public H1_FiniteElement_BiUnitSquare<degree>, 
                          public H1_FiniteElement_UnitTriangle<degree>,
-                         public H1_FiniteElement_UnitSegment<degree>{ };
+                         public H1_FiniteElement_BiUnitSegment<degree>{ };
 
 
 #endif

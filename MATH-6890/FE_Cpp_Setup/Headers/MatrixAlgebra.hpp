@@ -269,7 +269,7 @@ class Matrix{
             M = m; N = n;
         }
         Matrix(Vector<T> &v, Vector<T> &w);
-        Matrix(T i, int M); // Matrix to generate i*Identity matrix 
+        //Matrix(T i, int M); // Matrix to generate i*Identity matrix 
         void init_();
         void setValue(int i, int j, T val);
         T getValue(int i, int j);
@@ -353,14 +353,14 @@ void Matrix<T>::setSize(int M, int N){
     SQUARE = (m==n)?true:false;
 }
 
-/// Constructor to generate a Matrix object which is i*Identity matrix
-template<typename T>
-Matrix<T>::Matrix(T i, int M){
-    setSize(M,M);
-    for(int idx=0; idx<m; idx++){
-        m_Matrix[idx][idx] = (T)(i*1.);
-    }
-}
+// /// Constructor to generate a Matrix object which is i*Identity matrix
+// template<typename T>
+// Matrix<T>::Matrix(T i, int M){
+//     setSize(M,M);
+//     for(int idx=0; idx<m; idx++){
+//         m_Matrix[idx][idx] = (T)(i*1.);
+//     }
+// }
 
 
 template<typename T>
