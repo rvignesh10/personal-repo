@@ -236,11 +236,21 @@ void Element<degree>::ElemTransformation(Matrix<double> &N, Matrix<double> &dNdx
         (q+i)->J.setValue(0,1,dxdeta);
         (q+i)->J.setValue(1,0,dydxi);
         (q+i)->J.setValue(1,1,dydeta);
-        if (this->geometry == segment){  
-            (q+i)->det_jacobian = dxdxi;
+        if (this->geometry == segment){
+            if(abs(dxdxi)<1e-4){
+                (q+i)->det_jacobian = 1e-4;
+            } 
+            else{
+                (q+i)->det_jacobian = dxdxi;
+            }     
         }
         else{
-            (q+i)->det_jacobian = dxdxi*dydeta - dxdeta*dydxi;
+            if(abs(dxdxi*dydeta - dxdeta*dydxi) < 1e-4){
+                (q+i)->det_jacobian = 1e-4;
+            }
+            else{
+                (q+i)->det_jacobian = dxdxi*dydeta - dxdeta*dydxi;
+            }
         }
         (q+i)->Jinv.setSize(2,2);
         (q+i)->Jinv.setValue(0,0,(1./(q+i)->det_jacobian)*dydeta);
@@ -248,7 +258,7 @@ void Element<degree>::ElemTransformation(Matrix<double> &N, Matrix<double> &dNdx
         (q+i)->Jinv.setValue(1,0,(-1./(q+i)->det_jacobian)*dydxi);
         (q+i)->Jinv.setValue(1,1,(1./(q+i)->det_jacobian)*dxdxi);
 
-        std::cout << i << " " << xq << " " << yq << " " << w.getValue(i) << " " << (q+i)->det_jacobian << "\n";
+        // std::cout << i << " " << xq << " " << yq << " " << w.getValue(i) << " " << (q+i)->det_jacobian << "\n";
         this->setQuadrature(i, xq, yq, w.getValue(i));
     }
 

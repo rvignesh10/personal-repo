@@ -41,7 +41,7 @@ class Vector{
         T *getData(int &Size);
         void AssignFromList(AppendList *head);
         void displayVector();
-        ~Vector(){delete[] m_Vector;}
+        //~Vector(){delete[] m_Vector;}
 };
 
 /// default constructor

@@ -26,8 +26,7 @@ H1_FiniteElementSpace<degree>::H1_FiniteElementSpace(Mesh<nx,ny,degree> *mesh){
     case 1:{
         h1_fe.H1_FiniteElement_UnitSegment<degree>::Init_UnitSegment(); 
         h1_fe.H1_FiniteElement_UnitSegment<degree>::getQuadrature(3, wt);
-        h1_fe.getShapeFns(Ncopy, dNdxicopy, dNdetacopy);
-
+        h1_fe.H1_FiniteElement_UnitSegment<degree>::getShapeFns(Ncopy, dNdxicopy, dNdetacopy);
         break;
     }
     case 2:{
@@ -35,7 +34,9 @@ H1_FiniteElementSpace<degree>::H1_FiniteElementSpace(Mesh<nx,ny,degree> *mesh){
             h1_fe.H1_FiniteElement_UnitTriangle<degree>::Init_UnitTriangle(); 
         }
         else{
-            h1_fe.H1_FiniteElement_BiUnitSquare<degree>::Init_BiUnitSquare(); 
+            h1_fe.H1_FiniteElement_BiUnitSquare<degree>::Init_BiUnitSquare();
+            h1_fe.H1_FiniteElement_BiUnitSquare<degree>::getQuadrature(3,wt);
+            h1_fe.H1_FiniteElement_BiUnitSquare<degree>::getShapeFns(Ncopy, dNdxicopy, dNdetacopy); 
         }
         break;
     }
@@ -48,9 +49,10 @@ H1_FiniteElementSpace<degree>::H1_FiniteElementSpace(Mesh<nx,ny,degree> *mesh){
     int ne = mesh->GetNE();
     for (int i=0; i<ne; i++){  
         mesh->Mesh<nx,ny,degree>::ElemTransformation(i,Ncopy,dNdxicopy,dNdetacopy,wt);
+        // std::cout << "do something asshole \n";
     }
 
-    std::cout << "deleted Ncopy, and other shit \n";
+    // std::cout << "deleted Ncopy, and other shit \n";
 }
 
 

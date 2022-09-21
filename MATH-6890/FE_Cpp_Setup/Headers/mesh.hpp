@@ -205,7 +205,7 @@ void Mesh<nx,ny,degree>::MakeTriMesh(){
 
 template<int nx, int ny, int degree>
 void Mesh<nx,ny,degree>::ElemTransformation(int idx, Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta,Vector<double> &w){
-    std::cout << "elem idx :" << idx << "\n";
+    // std::cout << "elem idx :" << idx << "\n";
     (e+idx)->Element<degree>::ElemTransformation(N,dNdxi,dNdeta,w);
 }
 
