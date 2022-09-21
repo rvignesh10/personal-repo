@@ -37,7 +37,7 @@ class Vector{
         void Subtract(Vector<T> v_in, Vector<T> &v_out);
         void Scale(T scale, Vector<T> &v_out);
         void ElementMultiplication(Vector<T> v_in, Vector<T> &v_out);
-        T dotProduct(Vector<T> a);
+        T dotProduct(Vector<T> &a);
         T *getData(int &Size);
         void AssignFromList(AppendList *head);
         void displayVector();
@@ -47,7 +47,7 @@ class Vector{
 /// default constructor
 template<typename T>
 Vector<T>::Vector(){
-   init_();
+//   init_();
 }
 
 /// @brief Constructor to initialize with its size and set its values to 0
@@ -204,7 +204,7 @@ void Vector<T>::ElementMultiplication(Vector<T> v_in, Vector<T> &v_out){
 /// @param a - vector to dot product with
 /// @return - returns scalar dot product value
 template<typename T>
-T Vector<T>::dotProduct(Vector<T> a){
+T Vector<T>::dotProduct(Vector<T> &a){
     T sum= (T)0.0;
     if (size == a.getLength_()){
         for (int i=0; i<size; i++){
@@ -260,19 +260,21 @@ class Matrix{
         int m, n;
         bool SQUARE;
     public:
+        Matrix();
+        Matrix(const Matrix<T> *m_in);
         Matrix(int M, int N);
         Matrix(T *rowMajor, int Size, int M, int N); // imports matrix data from a rowMajor format
         void setSize(int M, int N);
         void getSize_(int &M, int &N){
             M = m; N = n;
         }
-        Matrix(Vector<T> v, Vector<T> w);
+        Matrix(Vector<T> &v, Vector<T> &w);
         Matrix(T i, int M); // Matrix to generate i*Identity matrix 
         void init_();
         void setValue(int i, int j, T val);
         T getValue(int i, int j);
-        void setRow(int row_idx, Vector<T> r);
-        void setColumn(int col_idx, Vector<T> c);
+        void setRow(int row_idx, Vector<T> &r);
+        void setColumn(int col_idx, Vector<T> &c);
         void getRow(int row_idx, Vector<T> &r);
         void getColumn(int col_idx, Vector<T> &c);
         void Transpose(Matrix<T> &m_Matrix_T);
@@ -287,8 +289,30 @@ class Matrix{
         T *exportRowMajor();
         void setRowMajor(T *rowMajor, int Size);
         void AssignFromList(AppendList *head);
+        T **returnMatrix(){return m_Matrix;}
         void displayMatrix();
+        // ~Matrix(){
+        //     std::cout << "destructor array start \n";
+        //     for (int i=0; i<m; i++){
+        //         delete[] m_Matrix[i];
+        //     }
+        //     delete[] m_Matrix;
+        //     std::cout << "destructor array end \n";
+        // }
 };
+
+template<typename T>
+Matrix<T>::Matrix(){
+setSize(1,1);
+}
+
+template<typename T>
+Matrix<T>::Matrix(const Matrix<T> *m_in){
+    m = m_in->m;
+    n = m_in->n;
+    SQUARE = m_in->SQUARE;
+    m_Matrix = m_in->m_Matrix;
+}
 
 template<typename T>
 Matrix<T>::Matrix(int M, int N){
@@ -320,6 +344,7 @@ Matrix<T>::Matrix(T *rowMajor, int Size, int M, int N){
 
 template<typename T>
 void Matrix<T>::setSize(int M, int N){
+    m_Matrix = nullptr;
     m_Matrix = new T *[M];
     for (int i=0; i< M; i++){
         m_Matrix[i] = new T[N];
@@ -339,7 +364,7 @@ Matrix<T>::Matrix(T i, int M){
 
 
 template<typename T>
-Matrix<T>::Matrix(Vector<T> v, Vector<T> w){
+Matrix<T>::Matrix(Vector<T> &v, Vector<T> &w){
     int M = v.getLength_();
     int N = w.getLength_();
     setSize(M,N);
@@ -387,7 +412,7 @@ T Matrix<T>::getValue(int i, int j){
 
 /// Set row of current matrix of index row_idx with Vector r
 template<typename T>
-void Matrix<T>::setRow(int row_idx, Vector<T> r){
+void Matrix<T>::setRow(int row_idx, Vector<T> &r){
     if (row_idx >= m){
         std::cerr << "Row index exceeds Matrix dimensions" << std::endl;
     }
@@ -403,7 +428,7 @@ void Matrix<T>::setRow(int row_idx, Vector<T> r){
 
 /// Set column of current matrix of index col_idx with Vector c
 template<typename T>
-void Matrix<T>::setColumn(int col_idx, Vector<T> c){
+void Matrix<T>::setColumn(int col_idx, Vector<T> &c){
     if (col_idx >= n){
         std::cerr << "Column index exceeds Matrix dimensions" << std::endl;
     }

@@ -1,9 +1,10 @@
 #ifndef ELEMENT_HPP
 #define ELEMENT_HPP
 
+#include "MatrixAlgebra.hpp"
 #include "geometries.hpp"
 
-template<const int degree>
+template<int degree>
 class Element{
 protected:
     int elem_id;
@@ -28,7 +29,10 @@ public:
     void Init_(Geom g);
     void setAttribute(int att){attribute = att;}
     void AddVertex(POINT *node, int i);
+    void getVertexLoc(int dir, Vector<double> &loc);
     void setQuadrature(int i, double x, double y, double weight);
+    void getQuadrature(int dir, Vector<double> &q_dir);
+    void ElemTransformation(Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta, Vector<double> &w);
     void printElementNodes();
     ~Element(){
         delete[] p;
@@ -39,7 +43,7 @@ public:
 /// @brief used to initialize elements with no id and attribute
 /// @tparam degree 
 /// @param g - geometry of this element
-template<const int degree>
+template<int degree>
 Element<degree>::Element(Geom g){
     Init_(g);
 }
@@ -49,7 +53,7 @@ Element<degree>::Element(Geom g){
 /// @param id - Assign this number as Element ID
 /// @param g - Geometry of the element (point, segment, triangle or quadrilateral)
 /// @param att - Attribute of the element (boundary or domain element)
-template<const int degree>
+template<int degree>
 Element<degree>::Element(int id, Geom g, int att){
     Init(id, g, att);
 }
@@ -59,7 +63,7 @@ Element<degree>::Element(int id, Geom g, int att){
 /// @param id - Assign this number as Element ID
 /// @param g - Geometry of the element (point, segment, triangle or quadrilateral)
 /// @param att - Attribute of the element (boundary or domain element)
-template<const int degree>
+template<int degree>
 void Element<degree>::Init(int id, Geom g, int att){
     elem_id = id;
     attribute = att;
@@ -69,7 +73,7 @@ void Element<degree>::Init(int id, Geom g, int att){
 /// @brief initialization without id and attribute
 /// @tparam degree 
 /// @param g - required geometry of the element
-template<const int degree>
+template<int degree>
 void Element<degree>::Init_(Geom g){
     geometry = g;
     switch (geometry)
@@ -91,9 +95,9 @@ void Element<degree>::Init_(Geom g){
         case triangle : {
             if (degree == 1){
                 p = new POINT[3];
-                q = new QuadratureNode;
+                q = new QuadratureNode[3];
                 sizeof_p = 3;
-                sizeof_q = 1;
+                sizeof_q = 3;
             }
             else if (degree == 2){
                 p = new POINT[6];
@@ -116,7 +120,7 @@ void Element<degree>::Init_(Geom g){
             p = new POINT[(degree+1)*(degree+1)];
             q = new QuadratureNode[4];
             sizeof_p = (degree+1)*(degree+1);
-            sizeof_q = 4;
+            sizeof_q = 4; // integrates upto polynomial order of 7 accurately
             break;
         }
         default :{
@@ -132,7 +136,7 @@ void Element<degree>::Init_(Geom g){
 /// @tparam degree 
 /// @param node - node location is a point with idx, attribute and (x,y) physical location
 /// @param i - the index of the p array
-template<const int degree>
+template<int degree>
 void Element<degree>::AddVertex(POINT *node, int i){
     if (i < sizeof_p){
         (p+i)->setIdx(node->getIdx());
@@ -146,13 +150,32 @@ void Element<degree>::AddVertex(POINT *node, int i){
     }
 }
 
+/// @brief get the location of the node locations in this element
+/// @tparam degree 
+/// @param dir direction of the location needed (x or y)
+/// @param loc Vector to assign these values to
+template<int degree>
+void Element<degree>::getVertexLoc(int dir, Vector<double> &loc){
+    loc.setSize(sizeof_p);
+    for (int i=0; i<sizeof_p; i++){
+        double x,y;
+        (p+i)->getCoordinates(x,y);
+        if (dir==1){
+            loc.setValue(i,x);
+        }
+        else{
+            loc.setValue(i,y);
+        }
+    }
+}
+
 /// @brief This function sets the quadrature location and its weight for each element
 /// @tparam degree 
 /// @param i - the ith index of the quadrature point array
 /// @param x - the x-component of quadrature point
 /// @param y - the y-component of quadrature point
 /// @param weight - integration weight associated with that location
-template<const int degree>
+template<int degree>
 void Element<degree>::setQuadrature(int i, double x, double y, double weight){
     if (i < sizeof_q){
         (q+i)->int_x = x;
@@ -164,7 +187,74 @@ void Element<degree>::setQuadrature(int i, double x, double y, double weight){
     }   
 }
 
-template<const int degree>
+/// @brief  get the quadrature location (x or y) associated with this element
+/// @tparam degree 
+/// @param dir direction of quadrature location needed
+/// @param q_dir Vector to assign those values to
+template<int degree>
+void Element<degree>::getQuadrature(int dir, Vector<double> &q_dir){
+    q_dir.setSize(sizeof_q);
+    for(int i=0; i<sizeof_q; i++){
+        if (dir ==1){
+            q_dir.setValue(i, (q+i)->int_x);
+        }
+        else if(dir==2){
+            q_dir.setValue(i, (q+i)->int_y);
+        } 
+        else{
+            q_dir.setValue(i, (q+i)->int_wt);
+        }  
+    }
+}
+
+
+template<int degree>
+void Element<degree>::ElemTransformation(Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta, Vector<double> &w){
+    Vector<double> x; Vector<double> y;
+    this->getVertexLoc(1, x);
+    this->getVertexLoc(2, y);
+    Vector<double> N_qi(this->sizeof_p);
+    Vector<double> dNdxi_qi(this->sizeof_p);
+    Vector<double> dNdeta_qi(this->sizeof_p);
+
+    for(int i=0; i<this->sizeof_q; i++){
+        
+        for(int j=0; j<this->sizeof_p; j++){
+            N_qi.setValue(j, N.getValue(j,i));
+            dNdxi_qi.setValue(j,dNdxi.getValue(j,i));
+            dNdeta_qi.setValue(j,dNdeta.getValue(j,i));
+        }
+        double xq, yq;
+        xq = N_qi.dotProduct(x);
+        yq = N_qi.dotProduct(y);
+        double dxdxi = dNdxi_qi.dotProduct(x);
+        double dydxi = dNdxi_qi.dotProduct(y);
+        double dxdeta = dNdeta_qi.dotProduct(x);
+        double dydeta = dNdeta_qi.dotProduct(y);
+        (q+i)->J.setSize(2,2);
+        (q+i)->J.setValue(0,0,dxdxi);
+        (q+i)->J.setValue(0,1,dxdeta);
+        (q+i)->J.setValue(1,0,dydxi);
+        (q+i)->J.setValue(1,1,dydeta);
+        if (this->geometry == segment){  
+            (q+i)->det_jacobian = dxdxi;
+        }
+        else{
+            (q+i)->det_jacobian = dxdxi*dydeta - dxdeta*dydxi;
+        }
+        (q+i)->Jinv.setSize(2,2);
+        (q+i)->Jinv.setValue(0,0,(1./(q+i)->det_jacobian)*dydeta);
+        (q+i)->Jinv.setValue(0,1,(-1./(q+i)->det_jacobian)*dxdeta);
+        (q+i)->Jinv.setValue(1,0,(-1./(q+i)->det_jacobian)*dydxi);
+        (q+i)->Jinv.setValue(1,1,(1./(q+i)->det_jacobian)*dxdxi);
+
+        std::cout << i << " " << xq << " " << yq << " " << w.getValue(i) << " " << (q+i)->det_jacobian << "\n";
+        this->setQuadrature(i, xq, yq, w.getValue(i));
+    }
+
+}
+
+template<int degree>
 void Element<degree>::printElementNodes(){
     std::cout << "ID" << "  " << "x" << "  " << "y \n"; 
     for (int i=0; i<sizeof_p; i++){

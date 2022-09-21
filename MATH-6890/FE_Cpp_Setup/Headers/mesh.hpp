@@ -6,7 +6,7 @@
 
 /* only generating maximum 2D mesh */
 
-template<const int nx, const int ny, const int degree>
+template<int nx, int ny, int degree>
 class Mesh{
 private:
     Element<degree> *e;
@@ -15,12 +15,17 @@ private:
     double x1, x2, y1, y2;
     int num_elem;
     int num_nodes;
+    Geom geometry;
 public:
+    Mesh(){e = nullptr; nodes = nullptr; dim=0; x1 = 0.; x2 = 0.; y1=0.; y2 = 0.; num_elem = 0; num_nodes = 0; geometry = invalid;}
     void Make1DCartesian(double x_left, double x_right);
     void Make2DCartesian(double x_left, double x_right, double y_bottom, double y_top, Geom g);
     void MakeRectMesh();
     void MakeTriMesh();
     int GetNE(){return num_elem;}
+    int GetDim(){return dim;}
+    Geom GetGeometry() {return geometry;}
+    void ElemTransformation(int idx,Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta, Vector<double> &w);
     Element<degree>* GetElement(int i);
     ~Mesh(){
         delete[] e;
@@ -28,7 +33,7 @@ public:
     }
 };
 
-template<const int nx, const int ny, const int degree>
+template<int nx, int ny, int degree>
 void Mesh<nx,ny,degree>::Make1DCartesian(double x_left, double x_right){
     e = new Element<degree>[nx];
     num_elem = nx;
@@ -36,6 +41,8 @@ void Mesh<nx,ny,degree>::Make1DCartesian(double x_left, double x_right){
     x2 = x_right;
     y1 = 0.; y2 = 0.;
     dim = 1;
+    geometry = segment;
+
     double dx = (x2-x1)/(double)(nx);
 
     nodes = new POINT[degree*num_elem + 1];
@@ -57,10 +64,10 @@ void Mesh<nx,ny,degree>::Make1DCartesian(double x_left, double x_right){
     int k = 0;
     for (int i=0; i<nx; i++){
         if (i==0 || i==nx-1){
-            (e+i)->Element<degree>::Init(i+1, segment, 1);
+            (e+i)->Element<degree>::Init(i+1, geometry, 1);
         }
         else{
-            (e+i)->Element<degree>::Init(i+1, segment, 0);
+            (e+i)->Element<degree>::Init(i+1, geometry, 0);
         }
         for (int j=0; j<=degree; j++){
             (e+i)->Element<degree>::AddVertex((nodes+k), j);
@@ -70,7 +77,7 @@ void Mesh<nx,ny,degree>::Make1DCartesian(double x_left, double x_right){
         
     }
 }
-template<const int nx, const int ny, const int degree>
+template<int nx, int ny, int degree>
 void Mesh<nx,ny,degree>::Make2DCartesian(double x_left, 
                            double x_right, double y_bottom, double y_top, Geom g){
 
@@ -78,6 +85,7 @@ void Mesh<nx,ny,degree>::Make2DCartesian(double x_left,
     y1 = y_bottom; y2 = y_top;
 
     dim = 2;
+    geometry = g;
 
     if (g == triangle){
         MakeTriMesh();
@@ -87,7 +95,7 @@ void Mesh<nx,ny,degree>::Make2DCartesian(double x_left,
     }
 
 }
-template<const int nx, const int ny, const int degree>
+template<int nx, int ny, int degree>
 void Mesh<nx,ny,degree>::MakeRectMesh(){
     e = new Element<degree>[nx*ny];
     num_elem = nx*ny;
@@ -120,10 +128,10 @@ void Mesh<nx,ny,degree>::MakeRectMesh(){
             count = 0;
             if (I==0 || I==nx-1 || J==0 || J==ny-1){
                 // boundary elements marked 1
-                (e+el_count)->Element<degree>::Init(el_count+1, quadrilateral, 1);
+                (e+el_count)->Element<degree>::Init(el_count+1, geometry, 1);
             }
             else{
-                (e+el_count)->Element<degree>::Init(el_count+1, quadrilateral, 0);
+                (e+el_count)->Element<degree>::Init(el_count+1, geometry, 0);
             }
             for (int l=0; l<degree+1; l++){
                 for (int m=0; m<degree+1; m++){
@@ -135,7 +143,7 @@ void Mesh<nx,ny,degree>::MakeRectMesh(){
         }
     }
 }
-template<const int nx, const int ny, const int degree>
+template<int nx, int ny, int degree>
 void Mesh<nx,ny,degree>::MakeTriMesh(){
     e = new Element<degree>[2*nx*ny];
     num_elem = 2*nx*ny;
@@ -166,17 +174,23 @@ void Mesh<nx,ny,degree>::MakeTriMesh(){
         for (int I=0; I<nx; I++){
             int i = I*degree;
             // upper triangle
-            (e+el_count)->Element<degree>::Init(el_count+1, triangle, 0); 
+            (e+el_count)->Element<degree>::Init(el_count+1, geometry, 0); 
             count = 0;
-            for (int l=0; l<degree+1; l++){
-                for (int m=0; m<=l; m++){
+            // for (int l=0; l<degree+1; l++){
+            //     for (int m=0; m<=l; m++){
+            //         (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
+            //         ++count;
+            //     }
+            // }
+            for (int m=degree; m>=0; m--){
+                for (int l=degree; l>=m; l--){
                     (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
                     ++count;
                 }
             }
             ++el_count;
             //lower triangle
-            (e+el_count)->Element<degree>::Init(el_count+1, triangle, 0); 
+            (e+el_count)->Element<degree>::Init(el_count+1, geometry, 0); 
             count = 0;
             for(int l=degree; l>=0; l--){
                 for (int m=degree; m>=l; m--){
@@ -188,8 +202,15 @@ void Mesh<nx,ny,degree>::MakeTriMesh(){
         }
     }
 }
+
+template<int nx, int ny, int degree>
+void Mesh<nx,ny,degree>::ElemTransformation(int idx, Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta,Vector<double> &w){
+    std::cout << "elem idx :" << idx << "\n";
+    (e+idx)->Element<degree>::ElemTransformation(N,dNdxi,dNdeta,w);
+}
+
 // use element number for i
-template<const int nx, const int ny, const int degree>
+template<int nx, int ny, int degree>
 Element<degree>* Mesh<nx,ny,degree>::GetElement(int i){
     if (i >=1 && i <= num_elem){
         return e+i-1;
