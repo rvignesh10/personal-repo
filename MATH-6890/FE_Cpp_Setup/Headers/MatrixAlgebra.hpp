@@ -29,6 +29,7 @@ class Vector{
         int getLength_(){
             return size;
         }
+        void Append(T value); 
         void setValue(int idx, T value); // sets value at some index
         T getValue(int idx); // gets value at that index
         void Add(T val); // adding scalar value to entire vector
@@ -92,6 +93,18 @@ void Vector<T>::setSize(int Size){
         m_Vector[i] = (T)(0.);
     }
 }
+
+
+template<typename T>
+void Vector<T>::Append(T value){
+    T *temp = m_Vector;
+    setSize(size+1);
+    for(int i=0; i<size; i++){
+        m_Vector[i] = temp[i];
+    }
+    m_Vector[size] = value;
+}
+
 
 /// @brief set value at index i 
 /// @tparam T 

@@ -6,22 +6,23 @@
 
 /* only generating maximum 2D mesh */
 
-template<int nx, int ny, int degree>
+template<int degree>
 class Mesh{
 private:
     Element<degree> *e;
     POINT *nodes;
-    int dim;
+    int dim, nx, ny;
     double x1, x2, y1, y2;
     int num_elem;
     int num_nodes;
     Geom geometry;
 public:
-    Mesh(){e = nullptr; nodes = nullptr; dim=0; x1 = 0.; x2 = 0.; y1=0.; y2 = 0.; num_elem = 0; num_nodes = 0; geometry = invalid;}
-    void Make1DCartesian(double x_left, double x_right);
-    void Make2DCartesian(double x_left, double x_right, double y_bottom, double y_top, Geom g);
+    Mesh(){e = nullptr; nodes = nullptr; dim=0; nx=0; ny=0;x1 = 0.; x2 = 0.; y1=0.; y2 = 0.; num_elem = 0; num_nodes = 0; geometry = invalid;}
+    void Make1DCartesian(int n1, int n2, double x_left, double x_right);
+    void Make2DCartesian(int n1, int n2,double x_left, double x_right, double y_bottom, double y_top, Geom g);
     void MakeRectMesh();
     void MakeTriMesh();
+    int GetNNodes(){return num_nodes;}
     int GetNE(){return num_elem;}
     int GetDim(){return dim;}
     Geom GetGeometry() {return geometry;}
@@ -34,8 +35,9 @@ public:
     }
 };
 
-template<int nx, int ny, int degree>
-void Mesh<nx,ny,degree>::Make1DCartesian(double x_left, double x_right){
+template<int degree>
+void Mesh<degree>::Make1DCartesian(int n1, int n2,double x_left, double x_right){
+    nx = n1; ny = n2;
     e = new Element<degree>[nx];
     num_elem = nx;
     x1 = x_left;
@@ -78,10 +80,11 @@ void Mesh<nx,ny,degree>::Make1DCartesian(double x_left, double x_right){
         
     }
 }
-template<int nx, int ny, int degree>
-void Mesh<nx,ny,degree>::Make2DCartesian(double x_left, 
+template<int degree>
+void Mesh<degree>::Make2DCartesian(int n1, int n2,double x_left, 
                            double x_right, double y_bottom, double y_top, Geom g){
-
+    
+    nx = n1; ny = n2;
     x1 = x_left; x2 = x_right;
     y1 = y_bottom; y2 = y_top;
 
@@ -96,8 +99,8 @@ void Mesh<nx,ny,degree>::Make2DCartesian(double x_left,
     }
 
 }
-template<int nx, int ny, int degree>
-void Mesh<nx,ny,degree>::MakeRectMesh(){
+template<int degree>
+void Mesh<degree>::MakeRectMesh(){
     e = new Element<degree>[nx*ny];
     num_elem = nx*ny;
     double dx = (x2-x1)/((double)(nx));
@@ -144,8 +147,8 @@ void Mesh<nx,ny,degree>::MakeRectMesh(){
         }
     }
 }
-template<int nx, int ny, int degree>
-void Mesh<nx,ny,degree>::MakeTriMesh(){
+template<int degree>
+void Mesh<degree>::MakeTriMesh(){
     e = new Element<degree>[2*nx*ny];
     num_elem = 2*nx*ny;
     double dx = (x2-x1)/(double)(nx);
@@ -216,25 +219,28 @@ void Mesh<nx,ny,degree>::MakeTriMesh(){
     }
 }
 
-template<int nx, int ny, int degree>
-void Mesh<nx,ny,degree>::ElemTransformation(int idx, Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta,Vector<double> &w){
+template<int degree>
+void Mesh<degree>::ElemTransformation(int idx, Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta,Vector<double> &w){
     // std::cout << "elem idx :" << idx << "\n";
     (e+idx)->Element<degree>::ElemTransformation(N,dNdxi,dNdeta,w);
 }
 
-template<int nx, int ny, int degree>
-void Mesh<nx,ny,degree>::GetElemIEN(int idx, Vector<int> &local_ien){
+template<int degree>
+void Mesh<degree>::GetElemIEN(int idx, Vector<int> &local_ien){
     (e+idx)->Element<degree>::LocalIEN(local_ien);
 }
 
-// use element number for i
-template<int nx, int ny, int degree>
-Element<degree>* Mesh<nx,ny,degree>::GetElement(int i){
+/// @brief get element details, make sure to send i from 1 to NE and not from 0 to NE-1
+/// @tparam degree 
+/// @param i 
+/// @return 
+template<int degree>
+Element<degree>* Mesh<degree>::GetElement(int i){
     if (i >=1 && i <= num_elem){
         return e+i-1;
     }
     else{
-        std::cerr << "inaccessbile element ID \n";
+        std::cerr << "inaccessbile element ID = " << i << "\n";
         return nullptr;
     }
 }

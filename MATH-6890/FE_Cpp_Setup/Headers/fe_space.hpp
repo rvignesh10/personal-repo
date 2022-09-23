@@ -7,24 +7,26 @@
 
 template<int degree>
 class H1_FiniteElementSpace{
-private:  
+protected:
+public:
     H1_FiniteElement<degree> h1_fe;
     Matrix<int> Global_IEN;
-public:
-    template<int nx, int ny>
-    H1_FiniteElementSpace(Mesh<nx,ny,degree> *mesh);
+    Mesh<degree> *mesh_file;
+    H1_FiniteElementSpace(){ mesh_file = new Mesh<degree>; }
+    H1_FiniteElementSpace(Mesh<degree> *mesh);
+
 };
 
 template<int degree>
-template<int nx, int ny>
-H1_FiniteElementSpace<degree>::H1_FiniteElementSpace(Mesh<nx,ny,degree> *mesh){
+H1_FiniteElementSpace<degree>::H1_FiniteElementSpace(Mesh<degree> *mesh){
 
+    mesh_file = mesh;
     Vector<double> wt;
     Matrix<double> Ncopy, dNdxicopy, dNdetacopy;
 
     int num_pts = 0;
 
-    switch (mesh->GetDim())
+    switch (mesh_file->GetDim())
     {
     case 1:{
         h1_fe.H1_FiniteElement_BiUnitSegment<degree>::Init_UnitSegment(); 
@@ -34,7 +36,7 @@ H1_FiniteElementSpace<degree>::H1_FiniteElementSpace(Mesh<nx,ny,degree> *mesh){
         break;
     }
     case 2:{
-        if (mesh->GetGeometry() == triangle){
+        if (mesh_file->GetGeometry() == triangle){
             h1_fe.H1_FiniteElement_UnitTriangle<degree>::Init_UnitTriangle();
             h1_fe.H1_FiniteElement_UnitTriangle<degree>::getQuadrature(3,wt);
             h1_fe.H1_FiniteElement_UnitTriangle<degree>::getShapeFns(Ncopy, dNdxicopy, dNdetacopy);
@@ -54,18 +56,15 @@ H1_FiniteElementSpace<degree>::H1_FiniteElementSpace(Mesh<nx,ny,degree> *mesh){
     }
     } 
 
-    int ne = mesh->GetNE();
+    int ne = mesh_file->GetNE();
     Global_IEN.setSize(ne, num_pts);
 
     for (int i=0; i<ne; i++){  
-        mesh->Mesh<nx,ny,degree>::ElemTransformation(i,Ncopy,dNdxicopy,dNdetacopy,wt);
+        mesh_file->Mesh<degree>::ElemTransformation(i,Ncopy,dNdxicopy,dNdetacopy,wt);
         Vector<int> l_ien;
-        mesh->Mesh<nx,ny,degree>::GetElemIEN(i, l_ien);
+        mesh_file->Mesh<degree>::GetElemIEN(i, l_ien);
         Global_IEN.setRow(i, l_ien);
     }
-
-    // std::cout << "Global_IEN is:  \n";
-    // Global_IEN.displayMatrix();
 }
 
 

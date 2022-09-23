@@ -14,6 +14,7 @@ public:
     POINT *p;
     QuadratureNode *q;
     int sizeof_p, sizeof_q;
+    Vector<int> node_idx;
     Element(){
         elem_id = 0;
         attribute = 0;
@@ -202,9 +203,12 @@ void Element<degree>::getQuadrature(int dir, Vector<double> &q_dir){
         else if(dir==2){
             q_dir.setValue(i, (q+i)->int_y);
         } 
-        else{
+        else if (dir==3){
             q_dir.setValue(i, (q+i)->int_wt);
-        }  
+        }
+        else if(dir ==4){
+            q_dir.setValue(i, (q+i)->det_jacobian);
+        } 
     }
 }
 
@@ -258,8 +262,6 @@ void Element<degree>::ElemTransformation(Matrix<double> &N, Matrix<double> &dNdx
         (q+i)->Jinv.setValue(0,1,(-1./(q+i)->det_jacobian)*dxdeta);
         (q+i)->Jinv.setValue(1,0,(-1./(q+i)->det_jacobian)*dydxi);
         (q+i)->Jinv.setValue(1,1,(1./(q+i)->det_jacobian)*dxdxi);
-
-        // std::cout << i << " " << xq << " " << yq << " " << w.getValue(i) << " " << (q+i)->det_jacobian << "\n";
         this->setQuadrature(i, xq, yq, w.getValue(i));
     }
 
@@ -268,13 +270,14 @@ void Element<degree>::ElemTransformation(Matrix<double> &N, Matrix<double> &dNdx
 template<int degree>
 void Element<degree>::LocalIEN(Vector<int> &local_ien){
     local_ien.setSize(sizeof_p);
+    node_idx.setSize(sizeof_p);
     for(int i=0; i<sizeof_p; i++){
+        node_idx.setValue(i, (p+i)->getIdx());
         if((p+i)->getAttribute() == 0){
             local_ien.setValue(i, (p+i)->getIdx());
         }
         else{
             local_ien.setValue(i, -1);
-            //local_ien.setValue(i, (p+i)->getIdx());
         }
         
     }
