@@ -115,7 +115,18 @@ void Mesh<degree>::MakeRectMesh(){
                                         y1+(double)(j)*(dy)/((double)(degree)));
             (nodes+count)->setIdx(count+1);
             if (i==0 || i==nx*degree || j==0 || j==ny*degree){
-                (nodes+count)->setAttribute(1);
+                if(i==0){
+                    (nodes+count)->setAttribute(1);
+                }
+                else if(i==nx*degree){
+                    (nodes+count)->setAttribute(2);
+                }
+                else if(j==0){
+                    (nodes+count)->setAttribute(3);
+                }
+                else{
+                    (nodes+count)->setAttribute(4);
+                }
             }
             else{
                 (nodes+count)->setAttribute(0);
@@ -163,7 +174,18 @@ void Mesh<degree>::MakeTriMesh(){
                                         y1+(double)(j)*dy/(double)(degree));
             (nodes+count)->setIdx(count+1);
             if (i==0 || i==nx*degree || j==0 || j==ny*degree){
-                (nodes+count)->setAttribute(1);
+                if(i==0){
+                    (nodes+count)->setAttribute(1);
+                }
+                else if(i==nx*degree){
+                    (nodes+count)->setAttribute(2);
+                }
+                else if(j==0){
+                    (nodes+count)->setAttribute(3);
+                }
+                else{
+                    (nodes+count)->setAttribute(4);
+                }
             }
             else{
                 (nodes+count)->setAttribute(0);

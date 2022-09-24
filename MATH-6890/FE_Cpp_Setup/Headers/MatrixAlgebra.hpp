@@ -297,6 +297,7 @@ class Matrix{
         void Multiply(Vector<T> u, Vector<T> &u_out);
         void Multiply(Matrix<T> M_in, Matrix<T> &M_out);
         void ElementMultiplication(Matrix<T> m1, Matrix<T> &m2);
+        void ElementMultiplication(Vector<T> &v, Matrix<T> &m2, int dir); 
         bool checkSquare(){return SQUARE;}
         void Invert(Matrix<T> &inv);
         T *exportRowMajor();
@@ -599,7 +600,7 @@ if (n == mi){
         Vector<T> row(n);
         getRow(i,row);
         for(int j=0; j<ni; j++){
-            Vector<T> column(ni);
+            Vector<T> column(mi);
             M_in.getColumn(j,column);
             T val = row.dotProduct(column);
             M_out.setValue(i,j,val);
@@ -621,6 +622,57 @@ void Matrix<T>::ElementMultiplication(Matrix<T> M_in, Matrix<T> &M_out){
         M_in.getColumn(j,temp2);
         temp1.ElementMultiplication(temp2,temp3);
         M_out.setColumn(j,temp3);
+    }
+}
+
+/// @brief multiply each row or column of a matrix with individual vector elements
+/// @tparam T 
+/// @param v vector whose values you'll multiply to the row/columns elements 
+/// @param m2 matrix to be assigned this new multiplication
+/// @param dir dir == 1, row multiplication; dir ==2, column multiplication
+template<typename T>
+void Matrix<T>::ElementMultiplication(Vector<T> &v, Matrix<T> &m2, int dir){
+    int m_o, n_o; m2.getSize_(m_o, n_o);
+    if (m == m_o && n == n_o){
+        switch(dir){
+            case 1:{
+                int l = v.getLength_();
+                if(n == l){
+                    for(int i=0; i<m; i++){
+                        Vector<T> t(n);
+                        this->getRow(i,t);
+                        t.ElementMultiplication(v, t);
+                        m2.setRow(i,t);
+                    }
+                }
+                else{
+                    std::cerr << "Vector dimension is incompatible with matrix dimension \n";
+                }
+                break;
+            }
+            case 2:{
+                int l = v.getLength_();
+                if(m == l){
+                    for(int i=0; i<n; i++){
+                        Vector<T> t(m);
+                        this->getColumn(i,t);
+                        t.ElementMultiplication(v, t);
+                        m2.setColumn(i,t);
+                    }
+                }
+                else{
+                    std::cerr << "Vector dimension is incompatible with matrix dimension \n";
+                }
+                break;
+            }
+            default:{
+                std::cout << "wrong direction specified \n";
+                break;
+            }
+        }
+    }
+    else{
+        std::cerr << "Matrix dimensions are incompatible \n";
     }
 }
 

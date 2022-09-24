@@ -278,8 +278,7 @@ void Element<degree>::LocalIEN(Vector<int> &local_ien){
         }
         else{
             local_ien.setValue(i, -1);
-        }
-        
+        }    
     }
 }
 

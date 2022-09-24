@@ -40,7 +40,6 @@ void ADSolver<degree>::AddDomainIntegrator(Integrator<degree> *i){
         *(DomainInt+num) = *i;
         ++num;
         std::cout << "You have added a domain integrator and number of domain integrators present are: " << num << "\n";
-        std::cout << "You can add " << 10-num << "... more integrators \n";
     }
     else{
         std::cout << "limit reached for number of integrators to add \n";
