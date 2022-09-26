@@ -3,38 +3,41 @@
 
 #include "fe_space.hpp"
 #include "MatrixAlgebra.hpp"
-#include "Integrator.hpp"
+#include "BiLinearForm.hpp"
+#include "LinearForm.hpp"
 
 #include <string.h>
 #include <fstream>
 #include <sstream>
 
-
+enum FlowType { steady=0, unsteady=1};
 
 
 template<int degree>
 class ADSolver {
 protected:
-    Integrator<degree> *DomainInt; 
+    BiLinearForm<degree> *DomainInt; 
     int num;   
+    LinearForm<degree> *DomainLF;
 public :
     ADSolver();
-    void AddDomainIntegrator(Integrator<degree> *i = nullptr);
+    void AddDomainIntegrator(BiLinearForm<degree> *i = nullptr);
+    void AddLinearForm(LinearForm<degree> *i = nullptr);
     void readSparse();
     void writeSparse();
-    void solve();
 };
 
 
 template<int degree>
 ADSolver<degree>::ADSolver(){
-    DomainInt = new Integrator<degree>[10];
+    DomainInt = new BiLinearForm<degree>[10];
     num = 0; 
+    DomainLF = new LinearForm<degree>;
 }
 
 
 template<int degree>
-void ADSolver<degree>::AddDomainIntegrator(Integrator<degree> *i){
+void ADSolver<degree>::AddDomainIntegrator(BiLinearForm<degree> *i){
 
     if (num < 10){
         *(DomainInt+num) = *i;
@@ -48,15 +51,26 @@ void ADSolver<degree>::AddDomainIntegrator(Integrator<degree> *i){
 }
 
 template<int degree>
-void ADSolver<degree>::readSparse(){
-    for (int it=0; it < num; it++){
-        AppendList* h = DomainInt[it].Integrator<degree>::returnHead();
-        std::cout << " --------- " << DomainInt[it].Integrator<degree>::IntegType << " -------------- \n";
-        std::cout << "I" << "  " << "J" << "  " << "value \n";
-        for (; h!=nullptr; h=h->next){
-            std::cout << h->i << "  " << h->j << "  " << h->value << "\n";
-        }
+void ADSolver<degree>::AddLinearForm(LinearForm<degree> *i){
+    DomainLF = i;
+    std::cout << "You have added 1 Linear Form for the RHS \n";
+}
 
+template<int degree>
+void ADSolver<degree>::readSparse(){
+    // for (int it=0; it < num; it++){
+    //     AppendList* h = DomainInt[it].BiLinearForm<degree>::returnHead();
+    //     std::cout << " --------- " << DomainInt[it].BiLinearForm<degree>::IntegType << " -------------- \n";
+    //     std::cout << "I" << "  " << "J" << "  " << "value \n";
+    //     for (; h!=nullptr; h=h->next){
+    //         std::cout << h->i << "  " << h->j << "  " << h->value << "\n";
+    //     }
+    // }
+    AppendList1D *h = DomainLF->LinearForm<degree>::returnHead();
+    std::cout << " -------- LinearForm ----------- \n";
+    std::cout << "I" << "  " << "value \n";
+    for(; h!=nullptr; h = h->next){
+        std::cout << h->i << "  " << h->value << "\n";
     }
 }
 
@@ -64,9 +78,9 @@ template<int degree>
 void ADSolver<degree>::writeSparse(){
 
     for (int it=0; it < num; it++){
-        AppendList* h = DomainInt[it].Integrator<degree>::returnHead();
+        AppendList* h = DomainInt[it].BiLinearForm<degree>::returnHead();
         std::stringstream fileName;
-        fileName << "../solveFiles/Integrator_" << (it+1) << "_" <<DomainInt[it].Integrator<degree>::IntegType << ".txt" << std::flush;
+        fileName << "../solveFiles/Integrator_" << (it+1) << "_" <<DomainInt[it].BiLinearForm<degree>::IntegType << ".txt" << std::flush;
         std::cout << fileName.str() << "\n";
 
         std::fstream fileCreate;
@@ -83,13 +97,26 @@ void ADSolver<degree>::writeSparse(){
         }
 
         fileCreate.close();
-
     }
-}
 
-template<int degree>
-void ADSolver<degree>::solve(){
-    
+    std::stringstream fileName;
+    fileName << "../solveFiles/LinearForm.txt" << std::flush;
+    std::cout << fileName.str() << "\n";
+
+    std::fstream fileCreate;
+    fileCreate.open(fileName.str(), std::fstream::out);
+
+    AppendList1D *h = this->DomainLF->LinearForm<degree>::returnHead();
+    for(; h!=nullptr; h=h->next){
+        int I = h->i; double Val = h->value;
+        std::ostringstream double2str;
+        double2str << std::fixed;
+        double2str << std::setprecision(16);
+        double2str << Val;
+        std::string s = double2str.str();
+        fileCreate << I << "," << s << std::endl;
+    }
+    fileCreate.close();
 }
 
 #endif

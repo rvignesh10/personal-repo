@@ -33,7 +33,7 @@ public:
     void getVertexLoc(int dir, Vector<double> &loc);
     void setQuadrature(int i, double x, double y, double weight);
     void getQuadrature(int dir, Vector<double> &q_dir);
-    void ElemTransformation(Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta, Vector<double> &w);
+    void ElemTransformation(Matrix<double> N, Matrix<double> dNdxi, Matrix<double> dNdeta, Vector<double> w);
     void LocalIEN(Vector<int> &local_ien);
     void printElementNodes();
     ~Element(){
@@ -214,7 +214,7 @@ void Element<degree>::getQuadrature(int dir, Vector<double> &q_dir){
 
 
 template<int degree>
-void Element<degree>::ElemTransformation(Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta, Vector<double> &w){
+void Element<degree>::ElemTransformation(Matrix<double> N, Matrix<double> dNdxi, Matrix<double> dNdeta, Vector<double> w){
     Vector<double> x; Vector<double> y;
     this->getVertexLoc(1, x);
     this->getVertexLoc(2, y);
@@ -262,6 +262,7 @@ void Element<degree>::ElemTransformation(Matrix<double> &N, Matrix<double> &dNdx
         (q+i)->Jinv.setValue(0,1,(-1./(q+i)->det_jacobian)*dxdeta);
         (q+i)->Jinv.setValue(1,0,(-1./(q+i)->det_jacobian)*dydxi);
         (q+i)->Jinv.setValue(1,1,(1./(q+i)->det_jacobian)*dxdxi);
+        //std::cout << i << " " << xq << " " << yq << " " << w.getValue(i) << "\n";  
         this->setQuadrature(i, xq, yq, w.getValue(i));
     }
 

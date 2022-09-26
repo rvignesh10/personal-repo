@@ -3,7 +3,8 @@
 
 #include "H1_FiniteElements.hpp"
 #include "mesh.hpp"
-
+#include <fstream>
+#include <sstream>
 
 template<int degree>
 class H1_FiniteElementSpace{
@@ -65,6 +66,17 @@ H1_FiniteElementSpace<degree>::H1_FiniteElementSpace(Mesh<degree> *mesh){
         mesh_file->Mesh<degree>::GetElemIEN(i, l_ien);
         Global_IEN.setRow(i, l_ien);
     }
+
+    std::stringstream fileName;
+    fileName << "../solveFiles/FiniteElementSpace.txt" << std::flush;
+    std::cout << "Finite Element Space created : " << fileName.str() << "\n";
+
+    std::fstream fileCreate;
+    fileCreate.open(fileName.str(), std::fstream::out);
+    fileCreate << "degree: " << degree << std::endl;
+    fileCreate << "#Elements: " << ne << std::endl;
+    fileCreate << "#Nodes: " << mesh_file->GetNNodes() << std::endl;
+    fileCreate.close();
 }
 
 

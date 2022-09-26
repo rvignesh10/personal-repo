@@ -26,7 +26,7 @@ public:
     int GetNE(){return num_elem;}
     int GetDim(){return dim;}
     Geom GetGeometry() {return geometry;}
-    void ElemTransformation(int idx,Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta, Vector<double> &w);
+    void ElemTransformation(int idx,Matrix<double> N, Matrix<double> dNdxi, Matrix<double> dNdeta, Vector<double> w);
     void GetElemIEN(int idx, Vector<int> &local_ien);
     Element<degree>* GetElement(int i);
     ~Mesh(){
@@ -242,7 +242,7 @@ void Mesh<degree>::MakeTriMesh(){
 }
 
 template<int degree>
-void Mesh<degree>::ElemTransformation(int idx, Matrix<double> &N, Matrix<double> &dNdxi, Matrix<double> &dNdeta,Vector<double> &w){
+void Mesh<degree>::ElemTransformation(int idx, Matrix<double> N, Matrix<double> dNdxi, Matrix<double> dNdeta,Vector<double> w){
     // std::cout << "elem idx :" << idx << "\n";
     (e+idx)->Element<degree>::ElemTransformation(N,dNdxi,dNdeta,w);
 }

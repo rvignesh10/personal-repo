@@ -13,6 +13,13 @@ struct AppendList{
     AppendList(){i=0; j=0; value = 0.0; next = nullptr;}
 };
 
+struct AppendList1D{
+    int i;
+    double value;
+    AppendList1D *next;
+    AppendList1D(){i=0; value = 0.; next = nullptr;}
+};
+
 /* -------------------------------------------------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------------------------------------------------- */
 template<typename T>
@@ -274,7 +281,7 @@ class Matrix{
         bool SQUARE;
     public:
         Matrix();
-        Matrix(const Matrix<T> *m_in);
+        //Matrix(const Matrix<T> *m_in);
         Matrix(int M, int N);
         Matrix(T *rowMajor, int Size, int M, int N); // imports matrix data from a rowMajor format
         void setSize(int M, int N);
@@ -283,6 +290,7 @@ class Matrix{
         }
         Matrix(Vector<T> &v, Vector<T> &w);
         //Matrix(T i, int M); // Matrix to generate i*Identity matrix 
+        void copy(Matrix<T> &M);
         void init_();
         void setValue(int i, int j, T val);
         T getValue(int i, int j);
@@ -297,7 +305,7 @@ class Matrix{
         void Multiply(Vector<T> u, Vector<T> &u_out);
         void Multiply(Matrix<T> M_in, Matrix<T> &M_out);
         void ElementMultiplication(Matrix<T> m1, Matrix<T> &m2);
-        void ElementMultiplication(Vector<T> &v, Matrix<T> &m2, int dir); 
+        void ElementMultiplication(Vector<T> v, Matrix<T> &m2, int dir); 
         bool checkSquare(){return SQUARE;}
         void Invert(Matrix<T> &inv);
         T *exportRowMajor();
@@ -320,13 +328,13 @@ Matrix<T>::Matrix(){
 setSize(1,1);
 }
 
-template<typename T>
-Matrix<T>::Matrix(const Matrix<T> *m_in){
-    m = m_in->m;
-    n = m_in->n;
-    SQUARE = m_in->SQUARE;
-    m_Matrix = m_in->m_Matrix;
-}
+// template<typename T>
+// Matrix<T>::Matrix(const Matrix<T> *m_in){
+//     m = m_in->m;
+//     n = m_in->n;
+//     SQUARE = m_in->SQUARE;
+//     m_Matrix = m_in->m_Matrix;
+// }
 
 template<typename T>
 Matrix<T>::Matrix(int M, int N){
@@ -352,6 +360,16 @@ Matrix<T>::Matrix(T *rowMajor, int Size, int M, int N){
                 m_Matrix[i][j] = rowMajor[idx];
                 ++idx;
                 }
+        }
+    }
+}
+
+template<typename T>
+void Matrix<T>::copy(Matrix<T> &M){
+    M.setSize(m,n);
+    for(int i=0; i<m; i++){
+        for(int j=0; j<n; j++){
+            M.setValue(i,j,this->getValue(i,j));
         }
     }
 }
@@ -631,7 +649,7 @@ void Matrix<T>::ElementMultiplication(Matrix<T> M_in, Matrix<T> &M_out){
 /// @param m2 matrix to be assigned this new multiplication
 /// @param dir dir == 1, row multiplication; dir ==2, column multiplication
 template<typename T>
-void Matrix<T>::ElementMultiplication(Vector<T> &v, Matrix<T> &m2, int dir){
+void Matrix<T>::ElementMultiplication(Vector<T> v, Matrix<T> &m2, int dir){
     int m_o, n_o; m2.getSize_(m_o, n_o);
     if (m == m_o && n == n_o){
         switch(dir){
