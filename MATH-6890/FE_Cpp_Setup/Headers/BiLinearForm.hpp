@@ -22,14 +22,14 @@ public :
     AppendList1D* returnHead_r(){return r_head;}
     void AddDiffusionIntegrator(double kappa);
     void AddDiffusionIntegrator(Matrix<double> &kappa);
-    void AddDiffusionIntegrator(void(*func)(Vector<double> , Vector<double>, Vector<double> & ));
+    void AddDiffusionIntegrator(void(*func)(double , double, double & ));
     void AddMassIntegrator();
     void AddAdvectionIntegrator(double a);
     void AddAdvectionIntegrator(Vector<double> &a);
     void AddAdvectionIntegrator(void (*func)(double, double, Vector<double> &));
     void invoke(double x, double y, Vector<double> &a, 
                 void (*func)(double, double, Vector<double> &));
-    void invoke(Vector<double> xq, Vector<double> yq, Vector<double> &k, void(*func)(Vector<double>, Vector<double>, Vector<double> &));
+    void invoke(Vector<double> xq, Vector<double> yq, Vector<double> &k, void(*func)(double, double, double &));
     void NumericalIntegration2D(double kappa, Vector<double> q_wt, Vector<double> jac_det,
                                 Matrix<double> N1, Matrix<double> N2, Matrix<double> &M);
     void NumericalIntegration2D(Vector<double> a, Vector<double> q_wt, Vector<double> jac_det,
@@ -183,6 +183,74 @@ void BiLinearForm<degree>::AddDiffusionIntegrator(Matrix<double> &kappa){
             D.Add(D2, D);
             D.Add(D3, D);
             D.Add(D4, D);
+            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, D);
+        }     
+    }
+
+    K = nullptr;
+    RHS = nullptr;
+}
+
+template<int degree>
+void BiLinearForm<degree>::AddDiffusionIntegrator(void(*func)(double, double, double &)){
+    std::cout << "Forming Diffusion matrix = -} w,x kappa u,x d_omega \n";
+
+    Matrix<double>N_copy, dNdxi_copy, dNdeta_copy;
+    for(int i=0; i< fes->mesh_file->GetNE(); i++){
+        Element<degree>* e = fes->mesh_file->GetElement(i+1);
+        Vector<double> q_wt, q_detJac;
+        Vector<double> xq, yq, kappa_q;
+        e->getQuadrature(1, xq);
+        e->getQuadrature(2, yq);
+
+        this->invoke(xq, yq, kappa_q, func);
+
+        e->getQuadrature(3, q_wt);
+        e->getQuadrature(4, q_detJac);
+        Vector<int> gl_ien(e->sizeof_p);
+        Vector<double> ql_bc(e->sizeof_p);
+        fes->Global_IEN.getRow(i, gl_ien);
+        fes->qbc.getRow(i, ql_bc);
+
+        if(fes->mesh_file->GetDim() == 1){
+            fes->h1_fe.H1_FiniteElement_BiUnitSegment<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy); 
+            int num_q = q_detJac.getLength_();
+            Vector<double> q_inv(num_q);
+            for(int j=0; j<num_q; j++){
+                q_inv.setValue(j, 1./q_detJac.getValue(j));
+            }
+            Matrix<double> dNdx; dNdxi_copy.copy(dNdx);
+            dNdx.ElementMultiplication(q_inv, dNdx, 1);
+            Matrix<double> D(e->sizeof_p, e->sizeof_p);
+            BiLinearForm<degree>::NumericalIntegration2D(kappa_q, q_wt, q_detJac, dNdx, dNdx, D);
+            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, D);
+        }
+        else{
+            if (e->geometry == triangle){
+                fes->h1_fe.H1_FiniteElement_UnitTriangle<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy);
+            }
+            else{
+                fes->h1_fe.H1_FiniteElement_BiUnitSquare<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy);
+            }
+            // need to find Ni,x and Ni,y first
+            Matrix<double> dNdx(e->sizeof_p, e->sizeof_q);
+            Matrix<double> dNdy(e->sizeof_p, e->sizeof_q);
+            for(int l=0; l<e->sizeof_p; l++){
+                for(int m=0; m<e->sizeof_q; m++){
+                    Vector<double> dN_natural(fes->mesh_file->GetDim());
+                    dN_natural.setValue(0,dNdxi_copy.getValue(l,m));
+                    dN_natural.setValue(1,dNdeta_copy.getValue(l,m));
+                    e->q->Jinv.Multiply(dN_natural, dN_natural);
+                    dNdx.setValue(l,m,dN_natural.getValue(0));
+                    dNdy.setValue(l,m,dN_natural.getValue(1));
+                }
+            }
+            Matrix<double> D(e->sizeof_p, e->sizeof_p);
+            Matrix<double> D2(e->sizeof_p, e->sizeof_p); 
+            // integrate Ni,x kappa Nj,x
+            BiLinearForm<degree>::NumericalIntegration2D(kappa_q, q_wt, q_detJac, dNdx, dNdx, D);
+            BiLinearForm<degree>::NumericalIntegration2D(kappa_q, q_wt, q_detJac, dNdy, dNdy, D2);
+            D.Add(D2, D);
             BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, D);
         }     
     }
@@ -554,6 +622,21 @@ void BiLinearForm<degree>::invoke(double x, double y, Vector<double> &a,
     func(x,y,a);
 }
 
+template<int degree>
+void BiLinearForm<degree>::invoke(Vector<double> xq, Vector<double> yq, Vector<double> &kq,
+                                  void(*func)(double, double, double &)){
+    kq.setSize(xq.getLength_());
+    for(int i=0; i<xq.getLength_(); i++){
+        double val;
+        func(xq.getValue(i), yq.getValue(i), val);
+        if (val > 0.){
+            kq.setValue(i, -1.*val);
+        }
+        else{
+            std::cerr << "kappa values are becoming negative \n";
+        }
+    }
+}
 
 /* ------------------------------------------------------------------------------------------- */
 
@@ -569,6 +652,11 @@ public :
                         H1_FiniteElementSpace<degree> *fespace_ptr) : BiLinearForm<degree>(fespace_ptr){
         this->BiLinearForm<degree>::IntegType = Diffusion;
         BiLinearForm<degree>::AddDiffusionIntegrator(kappa);
+    }
+    DiffusionIntegrator(void(*func)(double, double, double &), 
+                        H1_FiniteElementSpace<degree> *fespace_ptr) : BiLinearForm<degree>(fespace_ptr){
+        this->BiLinearForm<degree>::IntegType = Diffusion;
+        BiLinearForm<degree>::AddDiffusionIntegrator(func);
     }
 };
 
