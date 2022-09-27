@@ -12,31 +12,36 @@ class BiLinearForm {
 protected:
     H1_FiniteElementSpace<degree> *fes;
     AppendList *K; AppendList *head;
+    AppendList1D *RHS; AppendList1D *r_head;
 public :
     IntegratorType IntegType;
     BiLinearForm();
     BiLinearForm(const BiLinearForm<degree> &source);
     BiLinearForm(H1_FiniteElementSpace<degree> *fespace_ptr);
     AppendList* returnHead(){return head;}
+    AppendList1D* returnHead_r(){return r_head;}
     void AddDiffusionIntegrator(double kappa);
     void AddDiffusionIntegrator(Matrix<double> &kappa);
+    void AddDiffusionIntegrator(void(*func)(Vector<double> , Vector<double>, Vector<double> & ));
     void AddMassIntegrator();
     void AddAdvectionIntegrator(double a);
     void AddAdvectionIntegrator(Vector<double> &a);
     void AddAdvectionIntegrator(void (*func)(double, double, Vector<double> &));
     void invoke(double x, double y, Vector<double> &a, 
                 void (*func)(double, double, Vector<double> &));
+    void invoke(Vector<double> xq, Vector<double> yq, Vector<double> &k, void(*func)(Vector<double>, Vector<double>, Vector<double> &));
     void NumericalIntegration2D(double kappa, Vector<double> q_wt, Vector<double> jac_det,
                                 Matrix<double> N1, Matrix<double> N2, Matrix<double> &M);
     void NumericalIntegration2D(Vector<double> a, Vector<double> q_wt, Vector<double> jac_det,
                                 Matrix<double> N1, Matrix<double> N2, Matrix<double> &M);
-    void Assemble(Vector<int> &e_node_idx, Vector<int> &g_node_idx, Matrix<double> &M);
+    void Assemble(Vector<int> e_node_idx, Vector<int> g_node_idx, Vector<double> qbc_e, Matrix<double> &M);
 };
 
 template<int degree>
 BiLinearForm<degree>::BiLinearForm(){
     fes = nullptr;
     K = nullptr; head = nullptr;
+    RHS = nullptr; r_head = nullptr;
     IntegType = invalidIntegrator;
 }
 
@@ -44,9 +49,12 @@ template<int degree>
 BiLinearForm<degree>::BiLinearForm(const BiLinearForm<degree> &source){
     fes = new H1_FiniteElementSpace<degree>;
     K = new AppendList;
+    RHS = new AppendList1D;
     *fes = *source.fes;
     *K = *source.K;
     *head = *source.head;
+    *RHS = *source.RHS;
+    *r_head = *source.r_head;
     IntegType = source.IntegType;
 }
 
@@ -55,7 +63,10 @@ BiLinearForm<degree>::BiLinearForm(H1_FiniteElementSpace<degree> *fespace_ptr){
     fes = new H1_FiniteElementSpace<degree>;
     K = new AppendList;
     head = new AppendList;
+    RHS = new AppendList1D;
+    r_head = new AppendList1D;
     head = K;
+    r_head = RHS;
     fes = fespace_ptr;
 }
 
@@ -70,7 +81,9 @@ void BiLinearForm<degree>::AddDiffusionIntegrator(double kappa){
         e->getQuadrature(3, q_wt);
         e->getQuadrature(4, q_detJac);
         Vector<int> gl_ien(e->sizeof_p);
+        Vector<double> ql_bc(e->sizeof_p);
         fes->Global_IEN.getRow(i, gl_ien);
+        fes->qbc.getRow(i, ql_bc);
 
         if(fes->mesh_file->GetDim() == 1){
             fes->h1_fe.H1_FiniteElement_BiUnitSegment<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy); 
@@ -83,7 +96,7 @@ void BiLinearForm<degree>::AddDiffusionIntegrator(double kappa){
             dNdx.ElementMultiplication(q_inv, dNdx, 1);
             Matrix<double> D(e->sizeof_p, e->sizeof_p);
             BiLinearForm<degree>::NumericalIntegration2D(-1.*kappa, q_wt, q_detJac, dNdx, dNdx, D);
-            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, D);
+            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, D);
         }
         else{
             if (e->geometry == triangle){
@@ -111,11 +124,12 @@ void BiLinearForm<degree>::AddDiffusionIntegrator(double kappa){
             BiLinearForm<degree>::NumericalIntegration2D(-1.*kappa, q_wt, q_detJac, dNdx, dNdx, D);
             BiLinearForm<degree>::NumericalIntegration2D(-1.*kappa, q_wt, q_detJac, dNdy, dNdy, D2);
             D.Add(D2, D);
-            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, D);
+            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, D);
         }     
     }
 
     K = nullptr;
+    RHS = nullptr;
 }
 
 template<int degree>
@@ -129,7 +143,9 @@ void BiLinearForm<degree>::AddDiffusionIntegrator(Matrix<double> &kappa){
         e->getQuadrature(3, q_wt);
         e->getQuadrature(4, q_detJac);
         Vector<int> gl_ien(e->sizeof_p);
+        Vector<double> ql_bc(e->sizeof_p);
         fes->Global_IEN.getRow(i, gl_ien);
+        fes->qbc.getRow(i, ql_bc);
 
         if(fes->mesh_file->GetDim() == 1){
             std::cerr << "Not supported for 1D problems - use other overload \n";
@@ -167,11 +183,12 @@ void BiLinearForm<degree>::AddDiffusionIntegrator(Matrix<double> &kappa){
             D.Add(D2, D);
             D.Add(D3, D);
             D.Add(D4, D);
-            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, D);
+            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, D);
         }     
     }
 
     K = nullptr;
+    RHS = nullptr;
 }
 
 template<int degree>
@@ -224,12 +241,14 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(double a){
         // populating the a_vector at each of the integration points
         Matrix<double> a_(2, e->sizeof_q);
         for(int l=0; l<e->sizeof_q; l++){
-            aq.setValue(0, a); aq.setValue(1, a);
+            aq.setValue(0, -a); aq.setValue(1, -a);
             a_.setColumn(l, aq);
         }
 
         Vector<int> gl_ien(e->sizeof_p);
+        Vector<double> ql_bc(e->sizeof_p);
         fes->Global_IEN.getRow(i, gl_ien);
+        fes->qbc.getRow(i, ql_bc);
 
         if(e->geometry == segment){
             fes->h1_fe.H1_FiniteElement_BiUnitSegment<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy);
@@ -247,7 +266,7 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(double a){
             ax.Scale(-1., ax);
             Matrix<double> A(e->sizeof_p, e->sizeof_p);
             BiLinearForm<degree>::NumericalIntegration2D(ax, q_wt, q_detJac, dNdx, N, A);
-            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, A);
+            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, A);
         }
         else{
             if(e->geometry == triangle){
@@ -280,10 +299,11 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(double a){
             BiLinearForm<degree>::NumericalIntegration2D(ax, q_wt, q_detJac, dNdx, N, A);
             BiLinearForm<degree>::NumericalIntegration2D(ay, q_wt, q_detJac, dNdy, N, A2);
             A.Add(A2, A);
-            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, A);
+            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, A);
         }
     }
     K = nullptr;
+    RHS = nullptr;
 }
 
 template<int degree>
@@ -302,11 +322,14 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(Vector<double> &a){
         // populating the a_vector at each of the integration points
         Matrix<double> a_(fes->mesh_file->GetDim(), e->sizeof_q);
         for(int l=0; l<e->sizeof_q; l++){
+            a.Scale(-1.,a);
             a_.setColumn(l, a);
         }
 
         Vector<int> gl_ien(e->sizeof_p);
+        Vector<double> ql_bc(e->sizeof_p);
         fes->Global_IEN.getRow(i, gl_ien);
+        fes->qbc.getRow(i, ql_bc);
 
         if(e->geometry == segment){
             fes->h1_fe.H1_FiniteElement_BiUnitSegment<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy);
@@ -323,7 +346,7 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(Vector<double> &a){
             ax.Scale(-1., ax);
             Matrix<double> A(e->sizeof_p, e->sizeof_p);
             BiLinearForm<degree>::NumericalIntegration2D(ax, q_wt, q_detJac, dNdx, N, A);
-            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, A);
+            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, A);
         }
         else{
             if(e->geometry == triangle){
@@ -356,10 +379,11 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(Vector<double> &a){
             BiLinearForm<degree>::NumericalIntegration2D(ax, q_wt, q_detJac, dNdx, N, A);
             BiLinearForm<degree>::NumericalIntegration2D(ay, q_wt, q_detJac, dNdy, N, A2);
             A.Add(A2, A);
-            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, A);
+            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, A);
         }
     }
     K = nullptr;
+    RHS = nullptr;
 }
 
 
@@ -381,11 +405,14 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(void (*func)(double, double, V
         Matrix<double> a(2, e->sizeof_q); // hard coded to max dimension
         for(int l=0; l<e->sizeof_q; l++){
             BiLinearForm<degree>::invoke(xq.getValue(l), yq.getValue(l), aq, func);
+            aq.Scale(-1,aq);
             a.setColumn(l, aq);
         }
 
         Vector<int> gl_ien(e->sizeof_p);
+        Vector<double> ql_bc(e->sizeof_p);
         fes->Global_IEN.getRow(i, gl_ien);
+        fes->qbc.getRow(i, ql_bc);
 
         if(e->geometry == segment){
             fes->h1_fe.H1_FiniteElement_BiUnitSegment<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy);
@@ -402,7 +429,7 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(void (*func)(double, double, V
             ax.Scale(-1., ax);
             Matrix<double> A(e->sizeof_p, e->sizeof_p);
             BiLinearForm<degree>::NumericalIntegration2D(ax, q_wt, q_detJac, dNdx, N, A);
-            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, A);
+            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, A);
         }
         else{
             if(e->geometry == triangle){
@@ -435,10 +462,11 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(void (*func)(double, double, V
             BiLinearForm<degree>::NumericalIntegration2D(ax, q_wt, q_detJac, dNdx, N, A);
             BiLinearForm<degree>::NumericalIntegration2D(ay, q_wt, q_detJac, dNdy, N, A2);
             A.Add(A2, A);
-            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, A);
+            BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, A);
         }
     }
     K = nullptr;
+    RHS = nullptr;
 }
 
 template<int degree>
@@ -488,17 +516,26 @@ void BiLinearForm<degree>::NumericalIntegration2D(Vector<double> a, Vector<doubl
 }
 
 template<int degree>
-void BiLinearForm<degree>::Assemble(Vector<int> &e_node_idx, Vector<int> &g_node_idx, Matrix<double> &M){
+void BiLinearForm<degree>::Assemble(Vector<int> e_node_idx, Vector<int> g_node_idx, 
+                                    Vector<double> qbc_e, Matrix<double> &M){
     for(int i=0; i<e_node_idx.getLength_(); i++){
         for(int j=0; j<e_node_idx.getLength_(); j++){
             int row = e_node_idx.getValue(i);
             int col = e_node_idx.getValue(j);
-            if (g_node_idx.getValue(i) == -1){
+
+            if (g_node_idx.getValue(i) == -1 && g_node_idx.getValue(j) == -1){
                 K->i = row;
                 K->j = col;
                 K->value = 0.;
                 K->next = new AppendList;
-                K = K->next;    
+                K = K->next;  
+            }
+            else if(g_node_idx.getValue(i) != -1 && g_node_idx.getValue(j)==-1){
+                RHS->i = row;
+                std::cout << "we do get here, " << row << "\n";
+                RHS->value = -1.*qbc_e.getValue(j)*M.getValue(i,j);
+                RHS->next = new AppendList1D;
+                RHS = RHS->next;
             }
             else{
                 K->i = row;
@@ -517,14 +554,6 @@ void BiLinearForm<degree>::invoke(double x, double y, Vector<double> &a,
     func(x,y,a);
 }
 
-// template<int degree>
-// void BiLinearForm<degree>::MatrixLocalCopy(Matrix<double> M, double **Mo, int m, int n){
-//     for(int i=0; i<m; i++){
-//         for(int j=0; j<n; j++){
-//             Mo[i][j] = M.getValue(i,j);
-//         }
-//     }
-// }
 
 /* ------------------------------------------------------------------------------------------- */
 

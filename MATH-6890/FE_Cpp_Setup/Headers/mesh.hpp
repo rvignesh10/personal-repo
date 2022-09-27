@@ -22,6 +22,8 @@ public:
     void Make2DCartesian(int n1, int n2,double x_left, double x_right, double y_bottom, double y_top, Geom g);
     void MakeRectMesh();
     void MakeTriMesh();
+    void setBdrCondition_onElement(int e_idx, Vector<int> l_idx, Vector<double> &l_bdr, void (*func)(double, double, double &));
+    void invoke(double x, double y, double &qbc, void (*func)(double, double, double &)){func(x,y,qbc);}
     int GetNNodes(){return num_nodes;}
     int GetNE(){return num_elem;}
     int GetDim(){return dim;}
@@ -250,6 +252,24 @@ void Mesh<degree>::ElemTransformation(int idx, Matrix<double> N, Matrix<double> 
 template<int degree>
 void Mesh<degree>::GetElemIEN(int idx, Vector<int> &local_ien){
     (e+idx)->Element<degree>::LocalIEN(local_ien);
+}
+
+template<int degree>
+void Mesh<degree>::setBdrCondition_onElement(int e_idx, Vector<int> l_idx, Vector<double> &l_bdr,void (*func)(double, double, double &)){
+    Vector<double> x((e+e_idx)->Element<degree>::sizeof_p);
+    Vector<double> y((e+e_idx)->Element<degree>::sizeof_p);
+    (e+e_idx)->Element<degree>::getVertexLoc(1, x);
+    (e+e_idx)->Element<degree>::getVertexLoc(2, y);
+    for(int i=0; i<(e+e_idx)->Element<degree>::sizeof_p; i++){
+        if(l_idx.getValue(i) == -1){
+            double qbc;
+            Mesh<degree>::invoke(x.getValue(i), y.getValue(i), qbc, func);
+            l_bdr.setValue(i, qbc);
+        }
+        else{
+            l_bdr.setValue(i, 0.);
+        }
+    }
 }
 
 /// @brief get element details, make sure to send i from 1 to NE and not from 0 to NE-1

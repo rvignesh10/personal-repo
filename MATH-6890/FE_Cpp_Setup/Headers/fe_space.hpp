@@ -12,10 +12,11 @@ protected:
 public:
     H1_FiniteElement<degree> h1_fe;
     Matrix<int> Global_IEN;
+    Matrix<double> qbc;
     Mesh<degree> *mesh_file;
     H1_FiniteElementSpace(){ mesh_file = new Mesh<degree>; }
     H1_FiniteElementSpace(Mesh<degree> *mesh);
-
+    void setBdrCondition(void (*func)(double, double, double &));
 };
 
 template<int degree>
@@ -59,6 +60,7 @@ H1_FiniteElementSpace<degree>::H1_FiniteElementSpace(Mesh<degree> *mesh){
 
     int ne = mesh_file->GetNE();
     Global_IEN.setSize(ne, num_pts);
+    qbc.setSize(ne, num_pts);
 
     for (int i=0; i<ne; i++){  
         mesh_file->Mesh<degree>::ElemTransformation(i,Ncopy,dNdxicopy,dNdetacopy,wt);
@@ -76,8 +78,22 @@ H1_FiniteElementSpace<degree>::H1_FiniteElementSpace(Mesh<degree> *mesh){
     fileCreate << "degree: " << degree << std::endl;
     fileCreate << "#Elements: " << ne << std::endl;
     fileCreate << "#Nodes: " << mesh_file->GetNNodes() << std::endl;
+    fileCreate << "Dim: " << mesh_file->GetDim() << std::endl;
     fileCreate.close();
 }
 
+template<int degree>
+void H1_FiniteElementSpace<degree>::setBdrCondition(void (*func)(double, double, double &)){
+    int m,n;
+    Global_IEN.getSize_(m,n);
+    Vector<int> l_ien(n);
+    Vector<double> l_bdr(n);
+    
+    for(int e=0; e<this->mesh_file->GetNE(); e++){
+        Global_IEN.getRow(e, l_ien);
+        this->mesh_file->setBdrCondition_onElement(e, l_ien, l_bdr, func);
+        qbc.setRow(e, l_bdr);
+    }
+}
 
 #endif
