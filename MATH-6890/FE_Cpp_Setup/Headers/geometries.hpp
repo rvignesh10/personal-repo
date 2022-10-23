@@ -47,6 +47,7 @@ struct QuadratureNode {
     Matrix<double> J;
     double det_jacobian;
     Matrix<double> Jinv; 
+    Matrix<double> MetricTensor;
 };
 
 

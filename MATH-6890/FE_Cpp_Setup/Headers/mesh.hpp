@@ -5,6 +5,7 @@
 #include "element.hpp"
 
 /* only generating maximum 2D mesh */
+/* only generating rectangular meshes */
 
 template<int degree>
 class Mesh{
@@ -18,6 +19,7 @@ private:
     Geom geometry;
 public:
     Mesh(){e = nullptr; nodes = nullptr; dim=0; nx=0; ny=0;x1 = 0.; x2 = 0.; y1=0.; y2 = 0.; num_elem = 0; num_nodes = 0; geometry = invalid;}
+    void Init(int dimension, Geom g, int n_elem, int n1, int n2);
     void Make1DCartesian(int n1, int n2, double x_left, double x_right);
     void Make2DCartesian(int n1, int n2,double x_left, double x_right, double y_bottom, double y_top, Geom g);
     void MakeRectMesh();
@@ -31,11 +33,52 @@ public:
     void ElemTransformation(int idx,Matrix<double> N, Matrix<double> dNdxi, Matrix<double> dNdeta, Vector<double> w);
     void GetElemIEN(int idx, Vector<int> &local_ien);
     Element<degree>* GetElement(int i);
+    void AddElement(int e_id, POINT *p, int num_pts, int e_attribute);
     ~Mesh(){
         delete[] e;
         delete[] nodes;
     }
 };
+
+template<int degree>
+void Mesh<degree>::Init(int dimension, Geom g, int n_elem, int n1, int n2){
+    dim = dimension;
+    geometry = g;
+    num_elem = n_elem;
+    nx = n1;
+    ny = n2;
+
+    if (g == segment){
+        if (nx != n_elem){
+            std::cerr << "incompatible mesh formation \n";
+        }
+        else {
+            num_nodes = degree*num_elem+1;
+            e = new Element<degree>[num_elem];
+            nodes = new POINT[num_nodes];
+        }
+    }
+    else if(g == quadrilateral){
+        if (nx*ny != n_elem){
+            std::cerr << "incompatible mesh formation \n";
+        }
+        else{
+            num_nodes = (nx*degree+1)*(ny*degree+1);
+            e = new Element<degree>[num_elem];
+            nodes = new POINT[num_nodes];
+        }
+    }
+    else if(g == triangle){
+        if (2*nx*ny != n_elem){
+            std::cerr << "incompatible mesh formation \n";
+        }
+        else{
+            num_nodes = (nx*degree+1)*(ny*degree+1);
+            e = new Element<degree>[num_elem];
+            nodes = new POINT[num_nodes];
+        }
+    }
+}
 
 template<int degree>
 void Mesh<degree>::Make1DCartesian(int n1, int n2,double x_left, double x_right){
@@ -284,6 +327,69 @@ Element<degree>* Mesh<degree>::GetElement(int i){
     else{
         std::cerr << "inaccessbile element ID = " << i << "\n";
         return nullptr;
+    }
+}
+
+// set element id from 1 to num_elem. 
+template<int degree>
+void Mesh<degree>::AddElement(int e_id, POINT *pt, int num_pt, int e_attribute){
+    if (e_id < 0 || e_id >= num_elem){
+        std::cerr << "wrong element idx trying to be accessed \n";
+    }
+    else{
+        (e+e_id)->Element<degree>::Init(e_id, geometry, e_attribute);
+        if (geometry == segment){
+            if (num_pt!=2){
+                std::cerr << "wrong number of points specified \n";
+            }
+            else{
+                double xp[2];
+                for (int i=0; i<num_pt; i++){
+                    double xc, yc;
+                    (pt+i)->getCoordinates(xc,yc);
+                    xp[i] = xc; 
+                }
+                double h = abs(xp[1]-xp[0])/degree;
+                double xmin, xmax;
+                if (h <= 1e-16){
+                    std::cerr << "mesh is too small \n";
+                }
+                else{
+                    if(xp[0]<xp[1]){
+                        xmin = xp[0];
+                        xmax = xp[1];
+
+                    }
+                    else{
+                        xmin = xp[1];
+                        xmax = xp[0];
+                    }
+                }
+                for(int i=0; i<= degree; i++){
+                    (nodes+degree*(e_id)+i)->setCoordinates(xmin+(double)(i)*h,0.);
+                    if(degree*(e_id)+i==0 || degree*(e_id)+i==num_nodes){
+                        (nodes+degree*(e_id)+i)->setAttribute(1);
+                    }
+                    else{
+                        (nodes+degree*(e_id)+i)->setAttribute(0);
+                    }
+                    (nodes+degree*(e_id)+i)->setIdx(degree*(e_id)+i+1);
+                    (e+e_id)->Element<degree>::AddVertex(nodes+degree*(e_id)+i, i);
+                }
+            }
+        }
+        else if (geometry == quadrilateral){
+            if(num_pt!=4){
+                std::cerr<< "wrong number of points specified \n";
+            }
+            else {
+                double xp[4][2];
+            }
+
+        }
+        else if (geometry == triangle){
+
+        }
     }
 }
 

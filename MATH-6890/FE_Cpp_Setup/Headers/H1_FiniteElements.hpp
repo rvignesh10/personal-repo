@@ -10,11 +10,14 @@ protected:
     Matrix<double> N;
     Matrix<double> dNdxi;
     Matrix<double> dNdeta;
+    Matrix<double> d2Ndxi2;
+    Matrix<double> d2Ndeta2;
 public:
     H1_FiniteElement_BiUnitSegment();
     void Init_UnitSegment();
     void calcShapeFunction();
     void getShapeFns(Matrix<double> &m_in1, Matrix<double> &m_in2, Matrix<double> &m_in3){m_in1 = N; m_in2 = dNdxi; m_in3 = dNdeta;}
+    void getShapeFns2Der(Matrix<double> &m_in1, Matrix<double> &m_in2){m_in1 = d2Ndxi2; m_in2 = d2Ndeta2;}
 };
 
 template<int degree>
@@ -38,6 +41,8 @@ void H1_FiniteElement_BiUnitSegment<degree>::Init_UnitSegment(){
     N.setSize(degree+1, n);  
     dNdxi.setSize(degree+1, n);
     dNdeta.setSize(degree+1,n);
+    d2Ndxi2.setSize(degree+1,n);
+    d2Ndeta2.setSize(degree+1,n);
     H1_FiniteElement_BiUnitSegment<degree>::calcShapeFunction(); 
 }
 
@@ -54,6 +59,8 @@ void H1_FiniteElement_BiUnitSegment<degree>::calcShapeFunction(){
             double p = 1;
             Vector<double> Num(xi.getLength_()-1);
             Vector<double> Den(xi.getLength_()-1);
+
+            // shape function calculation
             for (int i=0; i<xi.getLength_(); i++){
                 if (abs(center-xi.getValue(i))<=1e-12){
                     continue;
@@ -66,6 +73,8 @@ void H1_FiniteElement_BiUnitSegment<degree>::calcShapeFunction(){
                 }
             }
             this->N.setValue(k,j,p);
+
+            // first derivative calculation
             double sum = 0.;
             for(int l=0; l<xi.getLength_()-1; l++){
                 p = 1;
@@ -80,6 +89,37 @@ void H1_FiniteElement_BiUnitSegment<degree>::calcShapeFunction(){
                 sum += p;
             }
             this->dNdxi.setValue(k,j,sum);
+
+            // second derivative calculation
+            sum = 0.;
+            double out_p, s;
+            for(int l=0; l<xi.getLength_()-1; l++){
+                s = 0.;
+                for (int u=0; u<xi.getLength_()-1; u++){
+                    p = 1.;
+                    if (l == u){
+                        out_p = 1./Den.getValue(u);
+                    }
+                    else{
+                        for(int m=0; m<xi.getLength_()-1; m++){
+                            if(m==l){
+                                continue;
+                            }
+                            else{
+                                if (m==u){
+                                    p *= 1./Den.getValue(m);
+                                }
+                                else{
+                                    p *= Num.getValue(m)/Den.getValue(m);
+                                }
+                            }
+                        }
+                        s += p;
+                    }
+                }
+                sum += out_p*s;
+            }
+            this->d2Ndxi2.setValue(k,j,sum);
         }
     }
 }
@@ -273,6 +313,8 @@ void H1_FiniteElement_BiUnitSquare<degree>::calcShapeFunction(){
             double p = 1;
             Vector<double> Num(xi.getLength_()-1);
             Vector<double> Den(xi.getLength_()-1);
+
+            // shape function calculation for xi calculation
             for (int i=0; i<xi.getLength_(); i++){
                 if (abs(center-xi.getValue(i))<=1e-12){
                     continue;
@@ -285,11 +327,13 @@ void H1_FiniteElement_BiUnitSquare<degree>::calcShapeFunction(){
                 }
             }
             l.setValue(k,j,p);
+
+            // first derivative calculation for xi direction
             double sum = 0.;
-            for(int l=0; l<xi.getLength_()-1; l++){
-                p = 1;
+            for(int g=0; g<xi.getLength_()-1; g++){
+                p = 1; 
                 for(int u=0; u<xi.getLength_()-1; u++){
-                    if(l==u){
+                    if(g==u){
                         p *= 1./Den.getValue(u);
                     }
                     else{
@@ -309,6 +353,8 @@ void H1_FiniteElement_BiUnitSquare<degree>::calcShapeFunction(){
             double p = 1;
             Vector<double> Num(eta.getLength_()-1);
             Vector<double> Den(eta.getLength_()-1);
+
+            // shape function calculation for eta direction
             for (int i=0; i<eta.getLength_(); i++){
                 if (abs(center-eta.getValue(i))<=1e-12){
                     continue;
@@ -322,10 +368,12 @@ void H1_FiniteElement_BiUnitSquare<degree>::calcShapeFunction(){
             }
             n.setValue(k,j,p);
             double sum = 0.;
-            for(int l=0; l<eta.getLength_()-1; l++){
+
+            // first derivative calculation for eta direction
+            for(int g=0; g<eta.getLength_()-1; g++){
                 p = 1;
                 for(int u=0; u<eta.getLength_()-1; u++){
-                    if(l==u){
+                    if(g==u){
                         p *= 1./Den.getValue(u);
                     }
                     else{

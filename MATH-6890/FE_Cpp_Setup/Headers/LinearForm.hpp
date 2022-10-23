@@ -20,7 +20,7 @@ public:
     void AddLinearForm(void(*func)(double, double, double &));
     void NumericalIntegration(double source, Vector<double> q_wt, Vector<double> q_Jac, Matrix<double> Ni, Vector<double> &lf);
     void NumericalIntegration(Vector<double> source, Vector<double> q_wt, Vector<double> q_Jac, Matrix<double> Ni, Vector<double> &lf);
-    void Assemble(Vector<int> &e_node_idx, Vector<int> &g_node_idx, Vector<double> &lf);
+    void Assemble(Vector<int> e_node_idx, Vector<int> g_node_idx, Vector<double> lf);
     AppendList1D* returnHead(){return head;}
 };
 
@@ -138,7 +138,7 @@ void LinearForm<degree>::invoke(double x, double y, double &source, void(*func)(
 template<int degree>
 void LinearForm<degree>::NumericalIntegration(double source, Vector<double> q_wt, 
                                               Vector<double> q_Jac, Matrix<double> N, Vector<double> &lf){
-    Matrix<double> N_prime = N;
+    Matrix<double> N_prime; N.copy(N_prime);
     N_prime.ElementMultiplication(q_Jac, N_prime, 1);
     N_prime.Multiply(q_wt, lf);
     lf.Scale(source, lf);
@@ -147,14 +147,14 @@ void LinearForm<degree>::NumericalIntegration(double source, Vector<double> q_wt
 template<int degree>
 void LinearForm<degree>::NumericalIntegration(Vector<double> source, Vector<double> q_wt, 
                                               Vector<double> q_Jac, Matrix<double> N, Vector<double> &lf){
-    Matrix<double> N_prime = N;
+    Matrix<double> N_prime; N.copy(N_prime);
     N_prime.ElementMultiplication(q_Jac, N_prime, 1);
     N_prime.ElementMultiplication(source, N_prime, 1);
     N_prime.Multiply(q_wt, lf);
 }
 
 template<int degree>
-void LinearForm<degree>::Assemble(Vector<int> &e_node_idx, Vector<int> &g_node_idx, Vector<double> &lf){
+void LinearForm<degree>::Assemble(Vector<int> e_node_idx, Vector<int> g_node_idx, Vector<double> lf){
     for(int i=0; i<e_node_idx.getLength_(); i++){
         int row = e_node_idx.getValue(i);
         double v = lf.getValue(i);

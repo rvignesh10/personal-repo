@@ -48,6 +48,8 @@ class Vector{
         T dotProduct(Vector<T> &a);
         T *getData(int &Size);
         void AssignFromList(AppendList *head);
+        double get_max();
+        double get_min();
         void displayVector();
         //~Vector(){delete[] m_Vector;}
 };
@@ -262,6 +264,32 @@ void Vector<T>::AssignFromList(AppendList * head){
         }
         
     }
+}
+
+template<typename T>
+double Vector<T>::get_max(){
+    double max_val = this->getValue(0);
+    double t;
+    for(int i=0; i<size; i++){
+        t = this->getValue(i);
+        if(t>max_val){
+            max_val = t;
+        }
+    }
+    return max_val;
+}
+
+template<typename T>
+double Vector<T>::get_min(){
+    double min_val = this->getValue(0);
+    double t;
+    for(int i=0; i<size; i++){
+        t = this->getValue(i);
+        if (t < min_val){
+            min_val = t;
+        }
+    }
+    return min_val;
 }
 
 /// Prints vector

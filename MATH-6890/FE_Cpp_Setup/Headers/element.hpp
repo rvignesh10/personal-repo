@@ -35,6 +35,7 @@ public:
     void getQuadrature(int dir, Vector<double> &q_dir);
     void ElemTransformation(Matrix<double> N, Matrix<double> dNdxi, Matrix<double> dNdeta, Vector<double> w);
     void LocalIEN(Vector<int> &local_ien);
+    double get_h();
     void printElementNodes();
     ~Element(){
         delete[] p;
@@ -262,7 +263,14 @@ void Element<degree>::ElemTransformation(Matrix<double> N, Matrix<double> dNdxi,
         (q+i)->Jinv.setValue(0,1,(-1./(q+i)->det_jacobian)*dxdeta);
         (q+i)->Jinv.setValue(1,0,(-1./(q+i)->det_jacobian)*dydxi);
         (q+i)->Jinv.setValue(1,1,(1./(q+i)->det_jacobian)*dxdxi);
-        //std::cout << i << " " << xq << " " << yq << " " << w.getValue(i) << "\n";  
+
+        (q+i)->MetricTensor.setSize(2,2);
+        for(int g=0; g<2; g++){
+            for(int o=0; o<2; o++){
+                (q+i)->MetricTensor.setValue(g,o,(q+i)->Jinv.getValue(0,g)*(q+i)->Jinv.getValue(0,o) + 
+                                            (q+i)->Jinv.getValue(1,g)*(q+i)->Jinv.getValue(1,o));
+            }
+        }
         this->setQuadrature(i, xq, yq, w.getValue(i));
     }
 
@@ -280,6 +288,20 @@ void Element<degree>::LocalIEN(Vector<int> &local_ien){
         else{
             local_ien.setValue(i, -1);
         }    
+    }
+}
+
+template<int degree>
+double Element<degree>::get_h(){
+    if(geometry==segment){
+        double x1,y1,x2,y2;
+        p[0].getCoordinates(x1,y1);
+        p[this->sizeof_p-1].getCoordinates(x2,y2);
+        return abs(x2-x1);
+    }
+    else{
+        std::cerr << "not supported for non-segment geometry \n";
+        return 0.;
     }
 }
 

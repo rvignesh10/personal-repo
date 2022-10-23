@@ -113,7 +113,7 @@ void BiLinearForm<degree>::AddDiffusionIntegrator(double kappa){
                     Vector<double> dN_natural(fes->mesh_file->GetDim());
                     dN_natural.setValue(0,dNdxi_copy.getValue(l,m));
                     dN_natural.setValue(1,dNdeta_copy.getValue(l,m));
-                    e->q->Jinv.Multiply(dN_natural, dN_natural);
+                    e->q[m].Jinv.Multiply(dN_natural, dN_natural);
                     dNdx.setValue(l,m,dN_natural.getValue(0));
                     dNdy.setValue(l,m,dN_natural.getValue(1));
                 }
@@ -165,7 +165,7 @@ void BiLinearForm<degree>::AddDiffusionIntegrator(Matrix<double> &kappa){
                     Vector<double> dN_natural(fes->mesh_file->GetDim());
                     dN_natural.setValue(0,dNdxi_copy.getValue(l,m));
                     dN_natural.setValue(1,dNdeta_copy.getValue(l,m));
-                    e->q->Jinv.Multiply(dN_natural, dN_natural);
+                    e->q[m].Jinv.Multiply(dN_natural, dN_natural);
                     dNdx.setValue(l,m,dN_natural.getValue(0));
                     dNdy.setValue(l,m,dN_natural.getValue(1));
                 }
@@ -240,7 +240,7 @@ void BiLinearForm<degree>::AddDiffusionIntegrator(void(*func)(double, double, do
                     Vector<double> dN_natural(fes->mesh_file->GetDim());
                     dN_natural.setValue(0,dNdxi_copy.getValue(l,m));
                     dN_natural.setValue(1,dNdeta_copy.getValue(l,m));
-                    e->q->Jinv.Multiply(dN_natural, dN_natural);
+                    e->q[m].Jinv.Multiply(dN_natural, dN_natural);
                     dNdx.setValue(l,m,dN_natural.getValue(0));
                     dNdy.setValue(l,m,dN_natural.getValue(1));
                 }
@@ -309,7 +309,7 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(double a){
         // populating the a_vector at each of the integration points
         Matrix<double> a_(2, e->sizeof_q);
         for(int l=0; l<e->sizeof_q; l++){
-            aq.setValue(0, -a); aq.setValue(1, -a);
+            aq.setValue(0, a); aq.setValue(1, a);
             a_.setColumn(l, aq);
         }
 
@@ -351,7 +351,7 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(double a){
                     Vector<double> dN_natural(fes->mesh_file->GetDim());
                     dN_natural.setValue(0,dNdxi_copy.getValue(l,m));
                     dN_natural.setValue(1,dNdeta_copy.getValue(l,m));
-                    e->q->Jinv.Multiply(dN_natural, dN_natural);
+                    e->q[m].Jinv.Multiply(dN_natural, dN_natural);
                     dNdx.setValue(l,m,dN_natural.getValue(0));
                     dNdy.setValue(l,m,dN_natural.getValue(1));
                 }
@@ -388,9 +388,10 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(Vector<double> &a){
         e->getQuadrature(4, q_detJac);
 
         // populating the a_vector at each of the integration points
-        Matrix<double> a_(fes->mesh_file->GetDim(), e->sizeof_q);
+        //Matrix<double> a_(fes->mesh_file->GetDim(), e->sizeof_q);
+        Matrix<double> a_(2, e->sizeof_q); // Hardcoded
         for(int l=0; l<e->sizeof_q; l++){
-            a.Scale(-1.,a);
+            // a.Scale(-1.,a);
             a_.setColumn(l, a);
         }
 
@@ -431,7 +432,7 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(Vector<double> &a){
                     Vector<double> dN_natural(fes->mesh_file->GetDim());
                     dN_natural.setValue(0,dNdxi_copy.getValue(l,m));
                     dN_natural.setValue(1,dNdeta_copy.getValue(l,m));
-                    e->q->Jinv.Multiply(dN_natural, dN_natural);
+                    e->q[m].Jinv.Multiply(dN_natural, dN_natural);
                     dNdx.setValue(l,m,dN_natural.getValue(0));
                     dNdy.setValue(l,m,dN_natural.getValue(1));
                 }
@@ -473,7 +474,7 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(void (*func)(double, double, V
         Matrix<double> a(2, e->sizeof_q); // hard coded to max dimension
         for(int l=0; l<e->sizeof_q; l++){
             BiLinearForm<degree>::invoke(xq.getValue(l), yq.getValue(l), aq, func);
-            aq.Scale(-1,aq);
+            // aq.Scale(-1,aq);
             a.setColumn(l, aq);
         }
 
@@ -514,7 +515,7 @@ void BiLinearForm<degree>::AddAdvectionIntegrator(void (*func)(double, double, V
                     Vector<double> dN_natural(fes->mesh_file->GetDim());
                     dN_natural.setValue(0,dNdxi_copy.getValue(l,m));
                     dN_natural.setValue(1,dNdeta_copy.getValue(l,m));
-                    e->q->Jinv.Multiply(dN_natural, dN_natural);
+                    e->q[m].Jinv.Multiply(dN_natural, dN_natural);
                     dNdx.setValue(l,m,dN_natural.getValue(0));
                     dNdy.setValue(l,m,dN_natural.getValue(1));
                 }
@@ -575,17 +576,17 @@ void BiLinearForm<degree>::NumericalIntegration2D(Vector<double> a, Vector<doubl
             N1.Multiply(N2_T, M);
         }
         else{
-            std::cerr << "Dimension mismatch between dNdxi and D, numerical integration error \n";
+            std::cerr << "Dimension mismatch between dNdxi and M, numerical integration error \n";
         }
     }
     else{
-        std::cerr << "error in dimensions of D matrix \n";
+        std::cerr << "error in dimensions of M matrix \n";
     }
 }
 
 template<int degree>
 void BiLinearForm<degree>::Assemble(Vector<int> e_node_idx, Vector<int> g_node_idx, 
-                                    Vector<double> qbc_e, Matrix<double> &M){
+                                    Vector<double>  qbc_e, Matrix<double> &M){
     for(int i=0; i<e_node_idx.getLength_(); i++){
         for(int j=0; j<e_node_idx.getLength_(); j++){
             int row = e_node_idx.getValue(i);
@@ -600,7 +601,6 @@ void BiLinearForm<degree>::Assemble(Vector<int> e_node_idx, Vector<int> g_node_i
             }
             else if(g_node_idx.getValue(i) != -1 && g_node_idx.getValue(j)==-1){
                 RHS->i = row;
-                std::cout << "we do get here, " << row << "\n";
                 RHS->value = -1.*qbc_e.getValue(j)*M.getValue(i,j);
                 RHS->next = new AppendList1D;
                 RHS = RHS->next;
