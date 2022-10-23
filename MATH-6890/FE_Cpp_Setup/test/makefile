@@ -13,3 +13,4 @@ Integrator_test: Integrator_test.cpp
 
 clean:
 	rm -f ${EXECS}
+	rm -r ../solveFiles/*.txt
