@@ -400,6 +400,29 @@ void Mesh<degree>::FinalizeMesh(){
         }
         fileCreate.close();
     }
+    else {
+        std::stringstream fileName;
+        fileName << "../solveFiles/Mesh.txt" << std::flush;
+        std::cout << "Mesh File created and stored ... \n";
+
+        std::fstream fileCreate;
+        fileCreate.open(fileName.str(), std::fstream::out);
+        for(int i=0; i<num_nodes; i++){
+            double x,y;
+            (nodes+i)->getCoordinates(x,y);
+            std::ostringstream double2str1, double2str2;
+            double2str1 << std::fixed;
+            double2str 1<< std::setprecision(16);
+            double2str << x ;
+            std::string s1 = double2str1.str();
+            double2str2 << std::fixed;
+            double2str2 << std::setprecision(16);
+            double2str2 << y ;
+            std::string s2 = double2str2.str();
+            fileCreate << s1 << "," << s2 << std::endl;
+        }
+        fileCreate.close();
+    }
 }
 
 #endif
