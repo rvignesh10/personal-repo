@@ -3,6 +3,8 @@
 
 #include "MatrixAlgebra.hpp"
 #include "element.hpp"
+#include <fstream>
+#include <sstream>
 
 /* only generating maximum 2D mesh */
 /* only generating rectangular meshes */
@@ -34,6 +36,7 @@ public:
     void GetElemIEN(int idx, Vector<int> &local_ien);
     Element<degree>* GetElement(int i);
     void AddElement(int e_id, POINT *p, int num_pts, int e_attribute);
+    void FinalizeMesh();
     ~Mesh(){
         delete[] e;
         delete[] nodes;
@@ -124,6 +127,7 @@ void Mesh<degree>::Make1DCartesian(int n1, int n2,double x_left, double x_right)
         k-=1;
         
     }
+    this->FinalizeMesh();
 }
 template<int degree>
 void Mesh<degree>::Make2DCartesian(int n1, int n2,double x_left, 
@@ -247,12 +251,6 @@ void Mesh<degree>::MakeTriMesh(){
             // upper triangle
             (e+el_count)->Element<degree>::Init(el_count+1, geometry, 0); 
             count = 0;
-            // for (int l=0; l<degree+1; l++){
-            //     for (int m=0; m<=l; m++){
-            //         (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
-            //         ++count;
-            //     }
-            // }
             for (int m=degree; m>=0; m--){
                 for (int l=degree; l>=m; l--){
                     (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
@@ -269,18 +267,6 @@ void Mesh<degree>::MakeTriMesh(){
                     ++count;
                 }
             }
-            // for(int l=degree; l>=0; l--){
-            //     for (int m=degree; m>=l; m--){
-            //         (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
-            //         ++count;
-            //     }
-            // }
-            // for(int l=0; l<degree+1; l++){
-            //     for(int m=0; m<=l; m++){
-            //         (e+el_count)->Element<degree>::AddVertex(nodes+(j+l)*(nx*degree+1)+(i+m),count);
-            //         ++count;
-            //     }
-            // }
             ++el_count;
         }
     }
@@ -390,6 +376,29 @@ void Mesh<degree>::AddElement(int e_id, POINT *pt, int num_pt, int e_attribute){
         else if (geometry == triangle){
 
         }
+    }
+}
+
+template<int degree>
+void Mesh<degree>::FinalizeMesh(){
+    if (geometry==segment){
+        std::stringstream fileName;
+        fileName << "../solveFiles/Mesh.txt" << std::flush;
+        std::cout << "Mesh File created and stored ... \n";
+
+        std::fstream fileCreate;
+        fileCreate.open(fileName.str(), std::fstream::out);
+        for(int i=0; i<num_nodes; i++){
+            double x,y;
+            (nodes+i)->getCoordinates(x,y);
+            std::ostringstream double2str;
+            double2str << std::fixed;
+            double2str << std::setprecision(16);
+            double2str << x;
+            std::string s = double2str.str();
+            fileCreate << s << std::endl;
+        }
+        fileCreate.close();
     }
 }
 

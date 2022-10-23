@@ -26,8 +26,8 @@ public:
     void AddStabilizationAdvection_W_Diffusion_U(Vector<double> a, double kappa, void(*func)(double, double, double, double &));
     void AddStabilizationAdvection_W_source_S(Vector<double> a, double kappa, void(*func)(double, double, double, double &), double source);
     void tauInvoke(double h, double ax, double Pee, double &tauEx, void(*func)(double, double, double, double &)){func(h,ax,Pee,tauEx);}
-    void Assemble(Vector<int> e_node_idx, Matrix<double> M);
-    void Assemble(Vector<int> e_node_idx, Vector<double> lf);
+    void Assemble(Vector<int> e_node_idx, Vector<int> g_node_idx, Vector<double> qbc_e, Matrix<double> M);
+    void Assemble(Vector<int> e_node_idx, Vector<int> g_node_idx, Vector<double> lf);
 }; 
 
 template<int degree>
@@ -53,12 +53,11 @@ Stabilization<degree>::Stabilization(H1_FiniteElementSpace<degree> *fespace_ptr)
 
 template<int degree>
 void Stabilization<degree>::AddStabilizationAdvection_W_Advection_U(Vector<double> a, double kappa, void(*func)(double, double, double, double &)){
-    std::cout << "Adding stabilization term (-a . (grad)(w), -tau*(a . (grad)(u))) ... \n";
+    std::cout << " \t Adding stabilization term (-a . (grad)(w), -tau*(a . (grad)(u))) ... \n";
 
     Matrix<double> N_copy, dNdxi_copy, dNdeta_copy;
     for(int i=0; i< fes->mesh_file->GetNE(); i++){
         Element<degree>* e = fes->mesh_file->GetElement(i+1);
-        e->printElementNodes();
         Vector<double> xq, yq, q_wt, q_detJac;
         e->getQuadrature(1, xq);
         e->getQuadrature(2, yq);
@@ -70,6 +69,10 @@ void Stabilization<degree>::AddStabilizationAdvection_W_Advection_U(Vector<doubl
         for(int l=0; l<e->sizeof_q; l++){
             a_.setColumn(l, a);
         }
+        Vector<int> gl_ien(e->sizeof_p);
+        Vector<double> ql_bc(e->sizeof_p);
+        fes->Global_IEN.getRow(i, gl_ien);
+        fes->qbc.getRow(i, ql_bc);
 
         if(fes->mesh_file->GetDim() == 1){
             fes->h1_fe.H1_FiniteElement_BiUnitSegment<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy); 
@@ -92,7 +95,7 @@ void Stabilization<degree>::AddStabilizationAdvection_W_Advection_U(Vector<doubl
 
             Matrix<double> D(e->sizeof_p, e->sizeof_p);
             BiLinearForm<degree>::NumericalIntegration2D(kappa_num, q_wt, q_detJac, dNdx, dNdx, D);
-            Stabilization<degree>::Assemble(e->node_idx, D);
+            Stabilization<degree>::Assemble(e->node_idx, gl_ien, ql_bc, D);
         }
     }
     // K = nullptr;
@@ -102,7 +105,7 @@ void Stabilization<degree>::AddStabilizationAdvection_W_Advection_U(Vector<doubl
 template<int degree>
 void Stabilization<degree>::AddStabilizationAdvection_W_Diffusion_U(Vector<double> a, double kappa, 
                                                                     void(*func)(double, double, double, double &)){
-    std::cout << " Adding stabilization term (-a . (grad)(w), tau*kappa*(nabla).(grad)(u)) ... \n";
+    std::cout << " \t Adding stabilization term (-a . (grad)(w), tau*kappa*(nabla).(grad)(u)) ... \n";
 
     Matrix<double> N_copy, dNdxi_copy, dNdeta_copy, d2Ndxi2_copy, d2Ndeta2_copy;
     for(int i=0; i< fes->mesh_file->GetNE(); i++){
@@ -118,6 +121,10 @@ void Stabilization<degree>::AddStabilizationAdvection_W_Diffusion_U(Vector<doubl
         for(int l=0; l<e->sizeof_q; l++){
             a_.setColumn(l, a);
         }
+        Vector<int> gl_ien(e->sizeof_p);
+        Vector<double> ql_bc(e->sizeof_p);
+        fes->Global_IEN.getRow(i, gl_ien);
+        fes->qbc.getRow(i, ql_bc);
 
         if(fes->mesh_file->GetDim() == 1){
             fes->h1_fe.H1_FiniteElement_BiUnitSegment<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy); 
@@ -146,7 +153,7 @@ void Stabilization<degree>::AddStabilizationAdvection_W_Diffusion_U(Vector<doubl
 
             Matrix<double> D(e->sizeof_p, e->sizeof_p);
             BiLinearForm<degree>::NumericalIntegration2D(kappa_num, q_wt, q_detJac, dNdx, d2Ndx2, D);
-            Stabilization<degree>::Assemble(e->node_idx, D);
+            Stabilization<degree>::Assemble(e->node_idx, gl_ien, ql_bc, D);
         }
     }
     // K = nullptr;
@@ -156,7 +163,7 @@ void Stabilization<degree>::AddStabilizationAdvection_W_Diffusion_U(Vector<doubl
 template<int degree>
 void Stabilization<degree>::AddStabilizationAdvection_W_source_S(Vector<double> a, double kappa, 
                                                                  void(*func)(double, double, double, double &), double source){
-    std::cout << "Adding Stabilization to RHS through the term (-a . (grad)(w), tau*source) ... \n";
+    std::cout << " \t Adding Stabilization to RHS through the term (-a . (grad)(w), tau*source) ... \n";
 
     Matrix<double> N_copy, dNdxi_copy, dNdeta_copy, d2Ndxi2_copy, d2Ndeta2_copy;
     for(int i=0; i< fes->mesh_file->GetNE(); i++){
@@ -173,6 +180,9 @@ void Stabilization<degree>::AddStabilizationAdvection_W_source_S(Vector<double> 
             a_.setColumn(l, a);
         }
 
+        Vector<int> gl_ien(e->sizeof_p);
+        fes->Global_IEN.getRow(i, gl_ien);
+
         if(fes->mesh_file->GetDim() == 1){
             fes->h1_fe.H1_FiniteElement_BiUnitSegment<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy);
             Matrix<double> N; N_copy.copy(N);
@@ -180,7 +190,6 @@ void Stabilization<degree>::AddStabilizationAdvection_W_source_S(Vector<double> 
             double h = e->get_h();
             double Pee = abs(a.getValue(0))*h/(2.*kappa);
             double tauEx;
-            std::cout << "Element ID = " << i << "\t h = " << h << "\t Pee = " << Pee << "\t tauEx = " << tauEx << "\n";
             Stabilization<degree>::tauInvoke(h, a.getValue(0), Pee, tauEx, func);
             tauEx = -1.*tauEx;
 
@@ -189,35 +198,60 @@ void Stabilization<degree>::AddStabilizationAdvection_W_source_S(Vector<double> 
             a_.getRow(0, kappa_num);
             kappa_num.Scale(tauEx*source, kappa_num);
             LinearForm<degree>::NumericalIntegration(kappa_num, q_wt, q_detJac, N, stable_lf);
-            Stabilization<degree>::Assemble(e->node_idx, stable_lf);
+            Stabilization<degree>::Assemble(e->node_idx, gl_ien, stable_lf);
         }
     }
 }
 
 template<int degree>
-void Stabilization<degree>::Assemble(Vector<int> e_node_idx, Matrix<double> M){
+void Stabilization<degree>::Assemble(Vector<int> e_node_idx, Vector<int> g_node_idx, 
+                                     Vector<double>  qbc_e, Matrix<double> M){
     for(int i=0; i<e_node_idx.getLength_(); i++){
         for(int j=0; j<e_node_idx.getLength_(); j++){
             int row = e_node_idx.getValue(i);
             int col = e_node_idx.getValue(j);
-            K->i = row;
-            K->j = col;
-            K->value = M.getValue(i,j);
-            K->next = new AppendList;
-            K = K->next; 
+
+            if (g_node_idx.getValue(i) == -1 && g_node_idx.getValue(j) == -1){
+                K->i = row;
+                K->j = col;
+                K->value = 0.;
+                K->next = new AppendList;
+                K = K->next;  
+            }
+            else if(g_node_idx.getValue(i) != -1 && g_node_idx.getValue(j)==-1){
+                RHS->i = row;
+                RHS->value = -1.*qbc_e.getValue(j)*M.getValue(i,j); // you subtract this on RHS
+                RHS->next = new AppendList1D;
+                RHS = RHS->next;
+            }
+            else{
+                K->i = row;
+                K->j = col;
+                K->value = M.getValue(i,j);
+                K->next = new AppendList;
+                K = K->next; 
+            }
         }
     }
 }
 
 template<int degree>
-void Stabilization<degree>::Assemble(Vector<int> e_node_idx, Vector<double> lf){
+void Stabilization<degree>::Assemble(Vector<int> e_node_idx, Vector<int> g_node_idx, Vector<double> lf){
     for(int i=0; i<e_node_idx.getLength_(); i++){
         int row = e_node_idx.getValue(i);
         double v = lf.getValue(i);
-        RHS->i = row;
-        RHS->value = v;
-        RHS->next = new AppendList1D;
-        RHS = RHS->next;
+        if(g_node_idx.getValue(i) == -1){
+            RHS->i = row;
+            RHS->value = 0.;
+            RHS->next = new AppendList1D;
+            RHS = RHS->next;
+        }
+        else{
+            RHS->i = row;
+            RHS->value = -1*v; // you subtract this on the RHS
+            RHS->next = new AppendList1D;
+            RHS = RHS->next;
+        }
     }
 }
 
