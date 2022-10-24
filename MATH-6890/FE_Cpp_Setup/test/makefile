@@ -9,6 +9,7 @@ mesh_test: mesh_test.cpp
 fespace_test: fespace_test.cpp
 	${MPICXX} -g fespace_test.cpp -o fespace_test
 Integrator_test: Integrator_test.cpp
+	rm -r ../solveFiles/*.txt
 	${MPICXX} Integrator_test.cpp -o Integrator_test 
 
 clean:

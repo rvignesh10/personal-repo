@@ -27,7 +27,7 @@ public :
     FlowSolver(FlowType f, Residual rType);
     void AddDomainIntegrator(BiLinearForm<degree> *i = nullptr);
     void AddLinearForm(LinearForm<degree> *i = nullptr);
-    void AddSUPGStabilization(Stabilization<degree> *i = nullptr);
+    void AddStabilization(Stabilization<degree> *i = nullptr);
     void readSparse();
     void writeSparse();
 };
@@ -75,10 +75,10 @@ void FlowSolver<degree>::AddLinearForm(LinearForm<degree> *i){
 }
 
 template<int degree>
-void FlowSolver<degree>::AddSUPGStabilization(Stabilization<degree> *i){
+void FlowSolver<degree>::AddStabilization(Stabilization<degree> *i){
     DomainHatInt = new Stabilization<degree>;
     DomainHatInt = i;
-    std::cout << "You have added SUPG Stabilization \n";
+    std::cout << "You have added Stabilization \n";
 }
 
 template<int degree>

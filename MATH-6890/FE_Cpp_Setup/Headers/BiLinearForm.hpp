@@ -5,7 +5,7 @@
 #include "MatrixAlgebra.hpp"
 #include <functional>
 
-enum IntegratorType {invalidIntegrator=-1, Advection=0, Diffusion=1, Mass=2};
+enum IntegratorType {invalidIntegrator=-1, Advection=0, Diffusion=1, Reaction=2, Mass=3};
 
 template<int degree>
 class BiLinearForm {
@@ -24,6 +24,7 @@ public :
     void AddDiffusionIntegrator(Matrix<double> &kappa);
     void AddDiffusionIntegrator(void(*func)(double , double, double & ));
     void AddMassIntegrator();
+    void AddMassIntegrator(double c);
     void AddAdvectionIntegrator(double a);
     void AddAdvectionIntegrator(Vector<double> &a);
     void AddAdvectionIntegrator(void (*func)(double, double, Vector<double> &));
@@ -287,6 +288,39 @@ void BiLinearForm<degree>::AddMassIntegrator(){
         Matrix<double> N2; N_copy.copy(N2);
         Matrix<double> M(e->sizeof_p, e->sizeof_p);
         BiLinearForm<degree>::NumericalIntegration2D(1., q_wt, q_detJac, N1, N2, M);
+        BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, M);
+    }
+    K = nullptr;
+}
+
+template<int degree>
+void BiLinearForm<degree>::AddMassIntegrator(double c){
+    std::cout << "Forming Mass matrix  =  } w u d_omega \n";
+
+    Matrix<double>N_copy, dNdxi_copy, dNdeta_copy;
+    for(int i=0; i< fes->mesh_file->GetNE(); i++){
+        Element<degree>* e = fes->mesh_file->GetElement(i+1);
+        Vector<double> q_wt, q_detJac;
+        e->getQuadrature(3, q_wt);
+        e->getQuadrature(4, q_detJac);
+        Vector<int> gl_ien(e->sizeof_p);
+        fes->Global_IEN.getRow(i, gl_ien);
+
+        if(fes->mesh_file->GetDim() == 1){
+            fes->h1_fe.H1_FiniteElement_BiUnitSegment<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy); 
+        }
+        else{
+            if (e->geometry == triangle){
+                fes->h1_fe.H1_FiniteElement_UnitTriangle<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy);
+            }
+            else{
+                fes->h1_fe.H1_FiniteElement_BiUnitSquare<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy);
+            }
+        }
+        Matrix<double> N1; N_copy.copy(N1);
+        Matrix<double> N2; N_copy.copy(N2);
+        Matrix<double> M(e->sizeof_p, e->sizeof_p);
+        BiLinearForm<degree>::NumericalIntegration2D(c, q_wt, q_detJac, N1, N2, M);
         BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, M);
     }
     K = nullptr;
@@ -691,6 +725,18 @@ public :
     MassIntegrator(H1_FiniteElementSpace<degree> *fespace_ptr) : BiLinearForm<degree>(fespace_ptr) {
         this->BiLinearForm<degree>::IntegType = Mass;
         this->AddMassIntegrator();
+    }
+};
+
+/* ------------------------------------------------------------------------------------------- */
+
+template<int degree>
+class ReactionIntegrator : public BiLinearForm<degree> {
+public :
+    ReactionIntegrator(double c, 
+                   H1_FiniteElementSpace<degree> *fespace_ptr) : BiLinearForm<degree>(fespace_ptr) {
+        this->BiLinearForm<degree>::IntegType = Reaction;
+        this->BiLinearForm<degree>::AddMassIntegrator(c);
     }
 };
 

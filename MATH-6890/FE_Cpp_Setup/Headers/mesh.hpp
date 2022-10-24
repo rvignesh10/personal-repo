@@ -412,8 +412,8 @@ void Mesh<degree>::FinalizeMesh(){
             (nodes+i)->getCoordinates(x,y);
             std::ostringstream double2str1, double2str2;
             double2str1 << std::fixed;
-            double2str 1<< std::setprecision(16);
-            double2str << x ;
+            double2str1 << std::setprecision(16);
+            double2str1 << x ;
             std::string s1 = double2str1.str();
             double2str2 << std::fixed;
             double2str2 << std::setprecision(16);

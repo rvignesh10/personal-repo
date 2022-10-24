@@ -10,14 +10,14 @@ struct AppendList{
     int j;
     double value;
     AppendList *next;
-    AppendList(){i=0; j=0; value = 0.0; next = nullptr;}
+    AppendList(){i=1; j=1; value = 0.0; next = nullptr;}
 };
 
 struct AppendList1D{
     int i;
     double value;
     AppendList1D *next;
-    AppendList1D(){i=0; value = 0.; next = nullptr;}
+    AppendList1D(){i=1; value = 0.; next = nullptr;}
 };
 
 /* -------------------------------------------------------------------------------------------------------------------- */
