@@ -270,8 +270,11 @@ void BiLinearForm<degree>::AddMassIntegrator(){
         Vector<double> q_wt, q_detJac;
         e->getQuadrature(3, q_wt);
         e->getQuadrature(4, q_detJac);
+        
         Vector<int> gl_ien(e->sizeof_p);
+        Vector<double> ql_bc(e->sizeof_p);
         fes->Global_IEN.getRow(i, gl_ien);
+        fes->qbc.getRow(i, ql_bc);
 
         if(fes->mesh_file->GetDim() == 1){
             fes->h1_fe.H1_FiniteElement_BiUnitSegment<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy); 
@@ -288,9 +291,10 @@ void BiLinearForm<degree>::AddMassIntegrator(){
         Matrix<double> N2; N_copy.copy(N2);
         Matrix<double> M(e->sizeof_p, e->sizeof_p);
         BiLinearForm<degree>::NumericalIntegration2D(1., q_wt, q_detJac, N1, N2, M);
-        BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, M);
+        BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, M);
     }
     K = nullptr;
+    RHS = nullptr;
 }
 
 template<int degree>
@@ -303,8 +307,11 @@ void BiLinearForm<degree>::AddMassIntegrator(double c){
         Vector<double> q_wt, q_detJac;
         e->getQuadrature(3, q_wt);
         e->getQuadrature(4, q_detJac);
+        
         Vector<int> gl_ien(e->sizeof_p);
+        Vector<double> ql_bc(e->sizeof_p);
         fes->Global_IEN.getRow(i, gl_ien);
+        fes->qbc.getRow(i, ql_bc);
 
         if(fes->mesh_file->GetDim() == 1){
             fes->h1_fe.H1_FiniteElement_BiUnitSegment<degree>::getShapeFns(N_copy, dNdxi_copy, dNdeta_copy); 
@@ -321,9 +328,10 @@ void BiLinearForm<degree>::AddMassIntegrator(double c){
         Matrix<double> N2; N_copy.copy(N2);
         Matrix<double> M(e->sizeof_p, e->sizeof_p);
         BiLinearForm<degree>::NumericalIntegration2D(c, q_wt, q_detJac, N1, N2, M);
-        BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, M);
+        BiLinearForm<degree>::Assemble(e->node_idx, gl_ien, ql_bc, M);
     }
     K = nullptr;
+    RHS = nullptr;
 }
 
 template<int degree>
