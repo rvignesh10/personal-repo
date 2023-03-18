@@ -10,7 +10,7 @@ def jacobian_vec_product(v,x,res_fun,ode):
     Returns:
         Jv (double (dim x 1)): The matrix-free approach to form the jacobian-vec product
     """
-    eps = 1e-06 
+    eps = 1e-08 
     if ode.bcs_bool:
         vmod = np.zeros(x.size)
         vmod[ode.ja+1: ode.jb] = v
@@ -22,7 +22,7 @@ def jacobian_vec_product(v,x,res_fun,ode):
     
     return Jv
 
-def gmres(A,b,x1,Jv_prod,disp,JFNK,maxkrylov=50,ztol=1e-15,tol=1e-6):
+def gmres(A,b,x1,Jv_prod,disp,JFNK,maxkrylov=100,ztol=1e-15,tol=1e-8):
     """ 
     gmres function - it performs the gmres iterations to solve the Newton's step \del_xk = -( J(xk) )^(-1)r(xk) \\
     - inputs \\
@@ -88,7 +88,7 @@ def gmres(A,b,x1,Jv_prod,disp,JFNK,maxkrylov=50,ztol=1e-15,tol=1e-6):
     return xl, res
 
 
-def newtons_method(x_guess,res_fun,jac_fun,disp,JFNK,ode,xtol=1e-08,rtol=1e-08,maxiter=200):
+def newtons_method(x_guess,res_fun,jac_fun,disp,JFNK,ode,rtol1=1e-08,rtol2=1e-06,maxiter=300):
     """Perform Newton's method to find next time step solution x^(n+1)
 
     Args:
@@ -110,7 +110,7 @@ def newtons_method(x_guess,res_fun,jac_fun,disp,JFNK,ode,xtol=1e-08,rtol=1e-08,m
     xk = x_guess.copy()
     
     # line-search set up
-    max_line_search = 20
+    max_line_search = 50
     ls_step = 0.1
     r_norm = []
     while True :
@@ -118,60 +118,62 @@ def newtons_method(x_guess,res_fun,jac_fun,disp,JFNK,ode,xtol=1e-08,rtol=1e-08,m
         r_norm.append(norm_res)
         iter += 1
         
+        if iter == 1:
+            norm0 = norm_res
+        
         # break conditions
-        if norm_res < rtol :
+        if norm_res < rtol1 or norm_res < rtol2*norm0 :
             if disp:
                 print("Converged due to newton ||r|| = ", norm_res)
                 print("----------------------------------------------------------------------------------------------------------")
             break
-        if  iter > maxiter:
+        elif  iter > maxiter:
             break  
-        
-                
-        if disp:
-            print("Newton Iteration ", iter, "||r|| = ", norm_res, "...")
-        
-        # get jacobian
-        if JFNK:
-            jacobian = []
-        else:
-            jacobian = jac_fun(xk)
-        
-        # lambda func for Jv product
-        Jv_prod = lambda v: jacobian_vec_product(v, xk, res_fun, ode)
-        
-        # solve for dx 
-        if ode.bcs_bool:
-            # solve for reduced system 
+        else:       
+            if disp:
+                print("Newton Iteration ", iter, "||r|| = ", norm_res, "...")
+            
+            # get jacobian
             if JFNK:
-                dx[ode.ja+1:ode.jb] = gmres(jacobian,-res,dx[ode.ja+1:ode.jb], Jv_prod, disp, JFNK)[0]
+                jacobian = []
             else:
-                dx[ode.ja+1:ode.jb] = np.linalg.solve(jacobian,-res)
-            dx = ode.apply_bcs(dx)
-        else:
-            if JFNK:
-                dx = gmres(jacobian,-res,dx,Jv_prod, disp, JFNK)[0]
+                jacobian = jac_fun(xk)
+            
+            # lambda func for Jv product
+            Jv_prod = lambda v: jacobian_vec_product(v, xk, res_fun, ode)
+            
+            # solve for dx 
+            if ode.bcs_bool:
+                # solve for reduced system 
+                if JFNK:
+                    dx[ode.ja+1:ode.jb] = gmres(jacobian,-res,dx[ode.ja+1:ode.jb], Jv_prod, disp, JFNK)[0]
+                else:
+                    dx[ode.ja+1:ode.jb] = np.linalg.solve(jacobian,-res)
+                dx = ode.apply_bcs(dx)
             else:
-                dx = np.linalg.solve(jacobian, -res)
-        
-        # line search algorithm implementation
-        alpha = 1.0
-        for i in range(max_line_search):
-            r_ls = res_fun(xk+alpha*dx)
-            if np.linalg.norm(r_ls,2) < norm_res:
-                if disp:
-                    print("Line search completed - new step found")
-                xk += alpha*dx
-                break
-            else:
-                if disp:
-                    print("\t Line search iteration ", i+1)
-                alpha *= ls_step
+                if JFNK:
+                    dx = gmres(jacobian,-res,dx,Jv_prod, disp, JFNK)[0]
+                else:
+                    dx = np.linalg.solve(jacobian, -res)
+            
+            # line search algorithm implementation
+            alpha = 1.0
+            for i in range(max_line_search):
+                r_ls = res_fun(xk+alpha*dx)
+                if np.linalg.norm(r_ls,2) < norm_res:
+                    if disp:
+                        print("Line search completed - new step found")
+                    xk += alpha*dx
+                    break
+                else:
+                    if disp:
+                        print("\t Line search iteration ", i+1)
+                    alpha *= ls_step
 
-        if ode.bcs_bool:
-            xk = ode.apply_bcs(xk)
-        res = res_fun(xk)
+            if ode.bcs_bool:
+                xk = ode.apply_bcs(xk)
+            res = res_fun(xk)
     
-    
-    assert iter <= maxiter, "Newton's method did not converge"
+    s = "Newton's method did not converge and has a residual of ||r|| = " + str(norm_res)  
+    assert iter <= maxiter, s
     return xk

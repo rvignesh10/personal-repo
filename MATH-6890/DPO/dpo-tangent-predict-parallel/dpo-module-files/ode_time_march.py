@@ -160,40 +160,73 @@ class implicit_crank_nicholson:
         else:
             return r
     
-    def calc_tangent_ode_res(self, v, vn, x, xn, tn, u):
-        res = (1/self.dtau)*(v - vn) - 0.5*( (self.ode.calc_jac_x(tn, x, u)@ v ) + \
-                self.ode.calc_jac_u(tn, x, u) + (self.ode.calc_jac_x(tn, xn, u)@ vn) + self.ode.calc_jac_u(tn,xn,u)  )
-        if self.ode.bcs_bool:
-            return np.array(res[self.ode.ja+1:self.ode.jb])
-        else:
-            return res
-    
-    def time_march(self,x_init,u, eta, f_tangent= False):
-        """time marching through dilated time 'tau' from initial condition x_init
-
-        Args:
-            x_init (double [dim x 1]): initial condition of ode
-            u (double): parameter
-            f_tangent (bool, optional): _description_. Defaults to False.
-
-        Returns:
-            _type_: _description_
-        """
+    def time_march(self,x_init,u):
+        
         self.Phi_t[:,0] = x_init.copy()
-        v = np.zeros_like(x_init)
         for n in range(1,self.tau.size):
             xp = self.Phi_t[:,n-1].copy()
             res_fun = lambda x: self.calc_ode_res(x, xp, self.tau[n], u)
             jac_fun = lambda x: self.calc_ode_res_jac_x(x, self.tau[n], u)
             self.Phi_t[:,n] = ls.newtons_method(xp, res_fun, jac_fun, self.disp, self.JFNK, self.ode)
-            if f_tangent:
-                vp = v.copy()
-                res_t_fun = lambda v: self.calc_tangent_ode_res(v, vp, self.Phi_t[:,n], xp, self.tau[n], u)
-                jac_t_fun = lambda v: None
-                # always using matrix-free method to solve tangent problem
-                v = ls.newtons_method(vp, res_t_fun, jac_t_fun, self.disp, True, self.ode)
-        return (self.Phi_t[:,-1]).copy(), v
+        return (self.Phi_t[:,-1]).copy()
 
+    def tangent_time_march(self, eta, u):
+        if self.ode.bcs_bool:
+            N = (self.Phi_t[:,0])[self.ode.ja+1:self.ode.jb].size
+        else:
+            N = self.ode.dim
+        v = np.zeros(N)
+        for n in range(1, self.tau.size):
+            xn   = self.Phi_t[:,n-1].copy()
+            xnp1 = self.Phi_t[:,n].copy()
+            if self.ode.bcs_bool:
+                A  = np.eye(N) - 0.5*self.dtau*self.ode.calc_jac_x(self.tau[n], xnp1, u)[self.ode.ja+1:self.ode.jb,self.ode.ja+1:self.ode.jb]
+                B  = np.eye(N) + 0.5*self.dtau*self.ode.calc_jac_x(self.tau[n], xn, u)[self.ode.ja+1:self.ode.jb,self.ode.ja+1:self.ode.jb]
+                f  = 0.5*( self.ode.calc_xdot(self.tau[n], xn, u) + self.ode.calc_xdot(self.tau[n], xnp1, u) )[self.ode.ja+1:self.ode.jb]
+                dfdu = 0.5*( self.ode.calc_jac_u(self.tau[n], xn, u) + self.ode.calc_jac_u(self.tau[n], xnp1, u) )[self.ode.ja+1:self.ode.jb]
+            else:
+                A  = np.eye(N) - 0.5*self.dtau*self.ode.calc_jac_x(self.tau[n], xnp1, u)
+                B  = np.eye(N) + 0.5*self.dtau*self.ode.calc_jac_x(self.tau[n], xn, u)
+                f  = 0.5*( self.ode.calc_xdot(self.tau[n], xn, u) + self.ode.calc_xdot(self.tau[n], xnp1, u) )
+                dfdu = 0.5*( self.ode.calc_jac_u(self.tau[n], xn, u) + self.ode.calc_jac_u(self.tau[n], xnp1, u) )
+            v = np.linalg.solve(A, B@v + self.dtau*dfdu + eta*self.dt*f)
+        return v
+    
+    def jac_vec_prod(self,w,u):
+        """This function does time marching to find out (dPhidx0)w - the jacobian vector product 
+        If x0 is perturbed, even 1 dimension, then Phi will be completely different, hence dPhidx0 is a
+        matrix. So, this time marching approach is taken to find out (dx^(n+1)dx0)w leading to (dPhidx0)w
+        Args:
+            x0 (double [dim x 1]): initial condition of the dynamics x0
+            w (double [dim x 1]): the vector that we want to multiply and find (dPhidx0)w matrix-free
+            u (double): parameter
+
+        Returns:
+            _type_: _description_
+        """
+        x0 = self.Phi_t[:,0].copy()
+        assert x0.size == w.size, "size mismatch between x0 and v0"
+        if self.ode.bcs_bool:
+            dPhidx0_w = w[self.ode.ja+1:self.ode.jb].copy()
+            N = x0[self.ode.ja+1:self.ode.jb].size
+        else:
+            dPhidx0_w = w.copy()
+            N = x0.size
+        dPhidomg = np.zeros(N)
+        for n in range(1,self.tau.size):
+            xp  = self.Phi_t[:,n-1]
+            Phi = self.Phi_t[:,n]
+            if self.ode.bcs_bool:
+                f = 0.5*(self.ode.calc_xdot(self.tau[n], xp, u) + self.ode.calc_xdot(self.tau[n], Phi, u))[self.ode.ja+1:self.ode.jb]
+                A = np.eye(N) - 0.5*self.dtau*self.ode.calc_jac_x(self.tau[n], Phi, u)[self.ode.ja+1:self.ode.jb, self.ode.ja+1:self.ode.jb]
+                B = np.eye(N) + 0.5*self.dtau*self.ode.calc_jac_x(self.tau[n], xp, u)[self.ode.ja+1:self.ode.jb, self.ode.ja+1:self.ode.jb]
+            else:
+                f = 0.5*(self.ode.calc_xdot(self.tau[n], xp, u)+ self.ode.calc_xdot(self.tau[n], Phi, u))
+                A = np.eye(N) - 0.5*self.dtau*self.ode.calc_jac_x(self.tau[n], Phi, u)
+                B = np.eye(N) + 0.5*self.dtau*self.ode.calc_jac_x(self.tau[n], xp, u)
+            dPhidx0_w = np.linalg.solve(A, B@dPhidx0_w)
+            dPhidomg  = np.linalg.solve(A, B@dPhidomg + self.dt*f)
+        return dPhidx0_w, dPhidomg
 
     def time_march2(self,x_init,T,u):
         """Integrate to any time T
@@ -286,30 +319,7 @@ class implicit_mid_point:
         else:
             return jac
     
-    
-    def calc_tangent_ode_res(self, v, vn, x, xn, tn, u):
-        """the residual of the nonlinear tangent ODE where v = dx/du
-
-        Args:
-            v (double [dim x 1]): guess solution vector v to find residual
-            vn (double [dim x 1]): previous time-step tangent solution vector
-            x (double [dim x 1]): solution vector x^(n+1) that solves original ODE
-            xn (double [dim x 1]): solution vector x^n that solves original ODE
-            tn (double): time at step n
-            u (double): parameter
-
-        Returns:
-            _type_: _description_
-        """
-        xeval = 0.5*(x + xn)
-        veval = 0.5*(v + vn) 
-        r = (1/self.dtau)*(v-vn) - ( self.ode.calc_jac_x(tn,xeval,u) @ veval ) - self.ode.calc_jac_u(tn, xeval, u)
-        if self.ode.bcs_bool:
-            return r[self.ode.ja+1:self.ode.jb]
-        else:
-            return r
-    
-    def time_march(self,x_init,u, eta, f_tangent= False):
+    def time_march(self,x_init,u):
         self.Phi_t[:,0] = x_init.copy()
         v = np.zeros_like(x_init)
         for n in range(1,self.tau.size):
@@ -317,15 +327,74 @@ class implicit_mid_point:
             res_fun = lambda x: self.calc_ode_res(x, xp, self.tau[n], u)
             jac_fun = lambda x: self.calc_ode_res_jac_x(x, xp, self.tau[n], u)
             self.Phi_t[:,n] = ls.newtons_method(xp, res_fun, jac_fun, self.disp, self.JFNK, self.ode)
-            if f_tangent:
-                vp = v.copy()
-                res_t_fun = lambda v: self.calc_tangent_ode_res(v, vp, self.Phi_t[:,n], xp, self.tau[n], u)
-                jac_t_fun = lambda v: None
-                # always using matrix-free method to solve tangent problem
-                v = ls.newtons_method(vp, res_t_fun, jac_t_fun, self.disp, True, self.ode)
-        return (self.Phi_t[:,-1]).copy(), v
+        return (self.Phi_t[:,-1]).copy()
 
+    def tangent_time_march(self,eta,u):
+        x0 = self.Phi_t[:,0].copy()
+        if self.ode.bcs_bool:
+            N = ((self.Phi_t[:,0])[self.ode.ja+1:self.ode.jb]).size
+        else:
+            N = self.Phi_t[:,0].size
+        v  = np.zeros(N)
+        for n in range(1, self.tau.size):
+            xm = 0.5*(self.Phi_t[:,n-1] + self.Phi_t[:,n])
+            if self.ode.bcs_bool:
+                f    = self.ode.calc_xdot(self.tau[n], xm, u)[self.ode.ja+1:self.ode.jb]
+                dfdu = self.ode.calc_jac_u(self.tau[n], xm, u)[self.ode.ja+1:self.ode.jb]
+                dfdx = self.ode.calc_jac_x(self.tau[n], xm, u)[self.ode.ja+1:self.ode.jb, self.ode.ja+1:self.ode.jb]
+                A = np.eye(N) - 0.5*self.dtau*dfdx
+                B = np.eye(N) + 0.5*self.dtau*dfdx
 
+            else:
+                f    = self.ode.calc_xdot(self.tau[n], xm, u)
+                dfdu = self.ode.calc_jac_u(self.tau[n], xm, u)
+                dfdx = self.ode.calc_jac_x(self.tau[n], xm, u)
+                A = np.eye(N) - 0.5*self.dtau*dfdx
+                B = np.eye(N) + 0.5*self.dtau*dfdx
+            v = np.linalg.solve(A, B@v + self.dtau*dfdu + eta*self.dt*f)
+        return v.copy()
+    
+    def jac_vec_prod(self,w,u):
+        """This function does time marching to find out (dPhidx0)w - the jacobian vector product 
+        If x0 is perturbed, even 1 dimension, then Phi will be completely different, hence dPhidx0 is a
+        matrix. So, this time marching approach is taken to find out (dx^(n+1)dx0)w leading to (dPhidx0)w
+        This function also computes dPhidomg when omg is perturbed and time marched
+        
+        Args:
+            x0 (double [dim x 1]): initial condition of the dynamics x0
+            w (double [dim x 1]): the vector that we want to multiply and find (dPhidx0)w matrix-free
+            u (double): parameter
+
+        Returns:
+            _type_: _description_
+        """
+        assert self.Phi_t[:,0].size == w.size, "size mismatch between x0 and v0"
+        if self.ode.bcs_bool:
+            dPhidx0_w = w[self.ode.ja+1:self.ode.jb].copy()
+            N = (self.Phi_t[:,0][self.ode.ja+1:self.ode.jb]).size
+        else:
+            dPhidx0_w = w.copy()
+            N = self.Phi_t[:,0].size
+        dPhidomg = np.zeros(N)
+
+        for n in range(1,self.tau.size):
+            xp  = self.Phi_t[:,n-1]
+            Phi = self.Phi_t[:,n]
+            xm = 0.5*(Phi + xp)
+            if self.ode.bcs_bool:
+                f    = self.ode.calc_xdot(self.tau[n], xm, u)[self.ode.ja+1:self.ode.jb]
+                dfdx = self.ode.calc_jac_x(self.tau[n], xm, u)[self.ode.ja+1:self.ode.jb, self.ode.ja+1:self.ode.jb]
+                A = np.eye(N) - 0.5*self.dtau*dfdx
+                B = np.eye(N) + 0.5*self.dtau*dfdx
+            else:
+                f    = self.ode.calc_xdot(self.tau[n], xm, u)
+                dfdx = self.ode.calc_jac_x(self.tau[n], xm, u)
+                A = np.eye(N) - 0.5*self.dtau*dfdx
+                B = np.eye(N) + 0.5*self.dtau*dfdx
+            dPhidx0_w = np.linalg.solve(A, B@dPhidx0_w)
+            dPhidomg  = np.linalg.solve(A, B@dPhidomg + self.dt*f)
+        return dPhidx0_w, dPhidomg
+    
     def time_march2(self,x_init,T,u):
         """Integrate to any time T
 
@@ -342,7 +411,6 @@ class implicit_mid_point:
             xp = Phi.copy()
             res_fun = lambda x: self.calc_ode_res(x, xp, T[n], u)
             jac_fun = lambda x: self.calc_ode_res_jac_x(x, xp, T[n], u)
-            #Phi = self.newtons_method(xp, res_fun, jac_fun)
             Phi = ls.newtons_method(xp, res_fun, jac_fun, self.disp, self.JFNK, self.ode)
         return Phi
     
