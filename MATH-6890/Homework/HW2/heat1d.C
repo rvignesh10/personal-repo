@@ -58,7 +58,7 @@ int main(int argc, char *argv[]){
     // defining max arguments
     #define MAX_ARG 5
 
-    printf("Usage: ./heat1d -case [CASE] -Nx [Nx] -matlabFileName [matlabFileName.m] \n");
+    printf("Usage: ./heat1d -Nx [Nx] -matlabFileName [matlabFileName.m] \n");
     printf("       Nx = number of grid cells. \n");
     printf("       matlabFileName.m : save result to this file \n");
 
@@ -75,8 +75,8 @@ int main(int argc, char *argv[]){
     #ifndef SOLUTION
         // #define SOLUTION TRIG_DD
         // #define SOLUTION TRIG_NN
-        #define SOLUTION POLY_DD
-        // #define SOLUTION POLY_NN
+        // #define SOLUTION POLY_DD
+        #define SOLUTION POLY_NN
     #endif
 
 
@@ -178,7 +178,7 @@ int main(int argc, char *argv[]){
         
         #else
             boundaryCondition(0, 0) = neumann;
-            boundaryCondition(0, 0) = neumann;
+            boundaryCondition(1, 0) = neumann;
 
             const char solutionName[] = "polyNN";
         
@@ -222,11 +222,11 @@ int main(int argc, char *argv[]){
     printf("  numSteps=%d, Nx=%d, kappa=%g, tFinal=%g, boundaryCondition(0,0)=%d, boundaryCondition(1,0)=%d\n",numSteps,Nx,kappa,tFinal,boundaryCondition(0,0),boundaryCondition(1,0));
 
     #define FORWARD_EULER  1
-    #define RK_4 2
+    #define RK_2 2
     // make a choice for explicit time marching scheme
     #ifndef EXPLICIT_SOLVER
-        #define EXPLICIT_SOLVER FORWARD_EULER
-        // #define EXPLICIT_SOLVER RK_4
+        // #define EXPLICIT_SOLVER FORWARD_EULER
+        #define EXPLICIT_SOLVER RK_2
     #endif
 
     /* -------- TIME-STEPPING LOOP --------- */
@@ -240,48 +240,33 @@ int main(int argc, char *argv[]){
             for (int j=ja; j<=jb; j++) {
                 un(j) = uc(j) + rx * ( uc(j+1) - 2*uc(j) + uc(j-1) ) + dt * FORCE( x(j), t );
             }
-        #elif EXPLICIT_SOLVER == RK_4
-            // set 4 vectors of K
-            Real *K_p[4]; 
-            int k;
-            for (k=0; k<4; k++)
-                K_p[k] = new Real [nd1];
+        #elif EXPLICIT_SOLVER == RK_2
+            // write RK2 solver
+            Real *w_p = new Real[nd1];
+            #define w(i) w_p[i-nd1a] 
 
-            // define macros for the K-vectors
-            #define K(k, i) K_p[(k)][(i) -nd1a]
-
-            for (k=0; k<4; k++) {
-                if (k == 0) {
-                    for (int j=ja; j<=jb; j++) {
-                        K(k, j) = rx * ( uc(j+1) - 2.0*uc(j) + uc(j-1) ) + dt * FORCE(x(j), t);
-                    }
-                    K(k, nd1a)   = K(k, ja+1);
-                    K(k, nd1b)   = K(k, jb-1);
-                }
-                else if (k == 3) {
-                    for (int j=ja; j<=jb; j++) {
-                        K(k, j) = rx * ( uc(j+1)+K(k-1, j+1) -2.0 * ( uc(j) + K(k-1, j) ) + uc(j-1) + K(k-1, j-1) ) + dt*FORCE( x(j), t+dt );
-                    }
-                    K(k, nd1a)   = K(k, ja+1);
-                    K(k, nd1b)   = K(k, jb-1);
+            for (int i=ja; i<=jb; i++) {
+                w(i) = uc(i) + (rx/2.0) * (uc(i+1) - 2.*uc(i) + uc(i-1)) + 0.5 * dt * FORCE( x(i), t );
+            }
+            // set boundary conditions
+            for (int side=0; side<=1; side++) {
+                const int i  = side == 0 ? ja : jb;
+                const int is = 1 - 2*side;
+                if (boundaryCondition(side, 0) == dirichlet){
+                    w(i)    = UTRUE( x(i), t+ 0.5*dt );
+                    w(i-is) = 3.0 * un(i) - 3.0 * un(i+is) + un(i+2*is); // extrapolate ghost
                 }
                 else {
-                    for (int j=ja; j<=jb; j++) {
-                        K(k, j) = rx * ( uc(j+1)+0.5*K(k-1, j+1) -2.0 * ( uc(j) + 0.5*K(k-1, j) ) + uc(j-1) + 0.5*K(k-1, j-1) ) + dt*FORCE( x(j), t+0.5*dt );
-                    }
-                    K(k, nd1a)   = K(k, ja+1);
-                    K(k, nd1b)   = K(k, jb-1);
+                    // neumann
+                    w(i-is) = w(i+is) - 2.*is*dx*UTRUEX(x(i),t+ 0.5*dt);
                 }
             }
 
-            // update next u
-            for (int j=ja; j<=jb; j++) {
-                un(j) = uc(j) + ( 1.0/6.0 ) * ( K(0, j) + 2.0*K(1, j) + 2.0*K(2, j) + K(3, j) );
-            }
+            for (int i=ja; i<=jb; i++) {
+                un(i) = uc(i) + rx * (w(i+1) - 2.*w(i) + w(i-1)) + dt * FORCE( x(i), t+0.5*dt );
+            }            
 
-            // delete the K_p pointers
-            for (k=0; k<4; k++)
-                delete [] K_p[k];
+            delete [] w_p;
         #else
             std::cerr << "ERROR: wrong time integrator chosen \n";
             abort();
