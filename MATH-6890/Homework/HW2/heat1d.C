@@ -225,8 +225,8 @@ int main(int argc, char *argv[]){
     #define RK_2 2
     // make a choice for explicit time marching scheme
     #ifndef EXPLICIT_SOLVER
-        // #define EXPLICIT_SOLVER FORWARD_EULER
-        #define EXPLICIT_SOLVER RK_2
+        #define EXPLICIT_SOLVER FORWARD_EULER
+        // #define EXPLICIT_SOLVER RK_2
     #endif
 
     /* -------- TIME-STEPPING LOOP --------- */
