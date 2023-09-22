@@ -6,10 +6,10 @@
 # If not you can set it using:
 #
 # cg6: use:
-# 	setenv APlusPlus /home/henshw/software/AppPpp-0.8.3-gcc7.5.0/A++/install
+#	setenv APlusPlus /home/henshw/software/AppPpp-0.8.3-gcc7.5.0/A++/install
 #
 # cgpi: use:
-# 	setenv APlusPlus /home/henshw/software/AppPpp-0.8.3-gcc4.8.5/A++/install
+#	setenv APlusPlus /home/henshw/software/AppPpp-0.8.3-gcc4.8.5/A++/install
 #
 # If you type:
 # 		ls $APlusPlus/include
@@ -25,7 +25,7 @@ CXX = g++
 CCFLAGS= -fPIC -O3 -I$(APlusPlus)/include -I../../include
 
 # List of libraries for A++
-AppLibrariers = -Wl, -rpath, $(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static
+AppLibrariers = -Wl,-rpath,$(APlusPlus)/lib -L$(APlusPlus)/lib -lApp -lApp_static
 
 # List of all libraries
 LIBS = $(AppLibrariers)
@@ -35,6 +35,13 @@ LIBS = $(AppLibrariers)
 # $< = name of the first prerequisite
 %.o : %.C
 	$(CXX) $(CCFLAGS) -o $@ -c $<
+
+#1D heat equation explicit time-stepping
+heat1d: heat1d.o
+	$(CXX) $(CCFLAGS) -o $@ heat1d.o $(LIBS)
+
+test: test.o
+	$(CXX) $(CCFLAGS) -o $@ test.o $(LIBS)
 
 # 1D heat equation, implicit time-stepping, A++ arrays
 heat1dImpFiles = heat1dImp.o tridiagonal.o

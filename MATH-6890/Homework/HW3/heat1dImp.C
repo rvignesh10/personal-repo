@@ -39,23 +39,24 @@ static Real kxPi       = kx*M_PI;
 static Real kappaPiSq  = kappa * kxPi * kxPi;
 
 // True solution for dirichlet BC's
-#define UTRUEDD(x, t)       sin(kxPi*(x))*exp( -kappaPiSq*(t) )
-#define UTRUEDDx(x, t) kxPi*cos(kxPi*(x))*exp( -kappaPiSq*(t) )
-#define FORCEDD(x, t)                                      (0.)
+#define UTRUEDD(x,t) sin(kxPi*(x))*exp( -kappaPiSq*(t) )
+#define UTRUEDDx(x,t) kxPi*cos(kxPi*(x))*exp( -kappaPiSq*(t) )
+#define FORCEDD(x,t) (0.)
 
 // True solution for Neumann BC's
-#define UTRUENN(x, t)        cos(kxPi*(x))*exp( -kappaPiSq*(t) )
-#define UTRUENNx(x, t) -kxPi*sin(kxPi*(x))*exp( -kappaPiSq*(t) )
-#define FORCENN(x, t)                                       (0.)
+#define UTRUENN(x,t) cos(kxPi*(x))*exp( -kappaPiSq*(t) )
+#define UTRUENNx(x,t) -kxPi*sin(kxPi*(x))*exp( -kappaPiSq*(t) )
+#define FORCENN(x,t) (0.)
 
 // polynomial manufactured solution
-static const Real b0 = 1.0, b1 = 0.5, b2 = 0.25;
-static const Real a0 = 1.0, a1 = 0.3, a2 = -0.1;
-#define POLY(x, t) (b0 + (x)*( b1 + (x)*b2 ))*( a0 + (t)*( a1 + (t)*a2 ) )
-#define POLYx(x, t)         ( b1 +2.*(x)*b2 )*( a0 + (t)*( a1 + (t)*a2 ) )
-#define POLYT(x, t)           (b0 + (x)*( b1 +(x)*b2 ))*( a1 + 2.*(t)*a2 )
-#define POLYXx(x, t)                ( 2.*b2 )*( a0 + (t)*( a1 + (t)*a2 ) )
-#define POLYFORCE(x, t)                 ( POLYT(x,t) - kappa*POLYXx(x,t) )
+static const Real b0=1., b1=.5, b2=.25;
+static const Real a0=1., a1=.3, a2=-.1;
+#define POLY(x,t) (b0 + (x)*( b1 + (x)*b2 ))*( a0 + (t)*( a1 + (t)*a2 ) )
+#define POLYx(x,t) ( b1 +2.*(x)*b2 )*( a0 + (t)*( a1 + (t)*a2 ) )
+#define POLYT(x,t) (b0 + (x)*( b1 +(x)*b2 ))*( a1 + 2.*(t)*a2 )
+
+#define POLYXx(x,t) ( 2.*b2 )*( a0 + (t)*( a1 + (t)*a2 ) )
+#define POLYFORCE(x,t) ( POLYT(x,t) - kappa*POLYXx(x,t) )
 
 
 // ---------------------------------------------------------------------------------------
@@ -207,10 +208,16 @@ int main( int argc, char* argv[] ) {
     #define APP_ARRAY 2
 
     #ifndef ARRAY_TYPE
-        #define ARRAY_TYPE CTYPE_ARRAY
-        // #define ARRAY_TYPE APP_ARRAY
+        // #define ARRAY_TYPE CTYPE_ARRAY
+        #define ARRAY_TYPE APP_ARRAY
     #endif
 
+    #if ARRAY_TYPE == CTYPE_ARRAY
+        printf("C-type array definitions are used \n");
+    #else
+        printf("App-type array definitions are used \n");
+    #endif
+    
     // setup boundary condition array
     const int dirichlet = 1, neumann = 2;
 
@@ -306,7 +313,7 @@ int main( int argc, char* argv[] ) {
     const int nd1a=n1a-numGhost;
     const int nd1b=n1b+numGhost;
 
-    int nd1 = nd1b-nd1a+1; // total number of grid points;
+    const int nd1 = nd1b-nd1a+1; // total number of grid points;
 
     // Grid points:
     #if ARRAY_TYPE == CTYPE_ARRAY
@@ -318,7 +325,7 @@ int main( int argc, char* argv[] ) {
     #endif
 
     for (int i=nd1a; i<=nd1b; i++){
-        x(i) = xa + (1-n1a)*dx;
+        x(i) = xa + (i-n1a)*dx;
     }
     if(debug > 1){
         for (int i=nd1a; i<=nd1b; i++)
@@ -516,6 +523,31 @@ int main( int argc, char* argv[] ) {
                 // Neumann : (U(i1+1)-U(i1-1))/(2*dx) = g
                 UN(i1-is) = UN(i1+is) -2.*is*dx*uTrue(i1);
             }
+        }
+      if( debug>1 ){
+           printf("step %d: After update interior and real BCs\n u=[",n+1);
+           for( int i=nd1a; i<=nd1b; i++ )
+               printf("%12.4e, ",un(i));
+           printf("]\n");
+       }
+
+       if( debug>0 ) {
+           // compute the error
+           Real maxErr=0.;
+           Real maxNorm = 0.;
+	   #if ARRAY_TYPE == CTYPE_ARRAY
+	       getTrue(solutionOption, t+dt, x_p, nd1a, nd1b, nd1a, uTrue_p );
+	   #else
+               getTrue( solutionOption, t+dt, x, I1, uTrue );
+           #endif
+	   for( int i=nd1a; i<=nd1b; i++ ) {
+                Real err = fabs( un(i) - uTrue(i) );
+                // Real err = fabs( un(i) - uTrue(x(i),t+dt) );
+                maxErr = max( maxErr,err );
+                maxNorm = max( maxNorm, abs(un(i)) );
+            }
+            maxErr /= maxNorm;
+            printf("step=%d, t=%9.3e, maxNorm=%9.2e, maxRelErr=%9.2e\n",n+1,t+dt,maxNorm,maxErr);
         }
     }
     Real cpuTimeStep = getCPU() - cpu0;
