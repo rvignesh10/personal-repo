@@ -228,89 +228,107 @@ int main( int argc, char *argv[] ) {
             un(j) = uc(j) + rx*( uc(j+1) -2.*uc(j) + uc(j-1) ) + dt*FORCE( x(j), t );
         }
         // set boundary conditions
-        if(myRank == 0)
-        {   
-            // left side
-            if(boundaryCondition(0, 0) == dirichlet)
-            {
-                un(n1a_l) = UTRUE( x(n1a_l), t+dt );
-                un(nd1a_l)= 3.0*un(n1a_l) - 3.0*un(n1a_l+1) + un(n1a_l+2);
+        if (np > 1)
+        {
+            if(myRank == 0)
+            {   
+                // left side
+                if(boundaryCondition(0, 0) == dirichlet)
+                {
+                    un(n1a_l) = UTRUE( x(n1a_l), t+dt );
+                    un(nd1a_l)= 3.0*un(n1a_l) - 3.0*un(n1a_l+1) + un(n1a_l+2);
+                }
+                else
+                {
+                    // neumann
+                    un(n1a_l) = UTRUE( x(n1a_l), t+dt );
+                    un(nd1a_l)= un(n1a_l+1) - 2.*dx*UTRUEX( x(n1a_l), t+dt );
+                }
+                // right side
+                if (commOption==0)
+                {
+                    MPI_Send(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD);
+                    MPI_Recv(&un(nd1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                }
+                else
+                {
+                    MPI_Isend(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD, &sendRight);
+                    MPI_Wait(&sendRight, MPI_STATUS_IGNORE);
+                    MPI_Irecv(&un(nd1b_l),1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, &recvRight);
+                    MPI_Wait(&recvRight, MPI_STATUS_IGNORE);
+                }
             }
-            else
-            {
-                // neumann
-                un(n1a_l) = UTRUE( x(n1a_l), t+dt );
-                un(nd1a_l)= un(n1a_l+1) - 2.*dx*UTRUEX( x(n1a_l), t+dt );
-            }
-            // right side
-            if (commOption==0)
-            {
-                MPI_Send(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD);
-                MPI_Recv(&un(nd1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            }
-            else
-            {
-                MPI_Isend(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD, &sendRight);
-                MPI_Wait(&sendRight, MPI_STATUS_IGNORE);
-                MPI_Irecv(&un(nd1b_l),1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, &recvRight);
-                MPI_Wait(&recvRight, MPI_STATUS_IGNORE);
-            }
-        }
-        else if(myRank == np-1)
-        {   
-            // left side
-            if(commOption==0)
-            {
-                MPI_Send(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD);
-                MPI_Recv(&un(nd1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            }
-            else
-            {
-                MPI_Isend(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD, &sendLeft);
-                MPI_Wait(&sendLeft, MPI_STATUS_IGNORE);
-                MPI_Irecv(&un(nd1a_l),1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, &recvLeft);
-                MPI_Wait(&recvLeft, MPI_STATUS_IGNORE);
-            }
-            // right side
-            if( boundaryCondition(1, 0) == dirichlet )
-            {
-                un(n1b_l) = UTRUE( x(n1b_l), t+dt );
-                un(nd1b_l)= 3.0*un(n1b_l) - 3.0*un(n1b_l-1) + un(n1b_l-2);
+            else if(myRank == np-1 )
+            {   
+                // left side
+                if(commOption==0)
+                {
+                    MPI_Send(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD);
+                    MPI_Recv(&un(nd1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                }
+                else
+                {
+                    MPI_Isend(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD, &sendLeft);
+                    MPI_Wait(&sendLeft, MPI_STATUS_IGNORE);
+                    MPI_Irecv(&un(nd1a_l),1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, &recvLeft);
+                    MPI_Wait(&recvLeft, MPI_STATUS_IGNORE);
+                }
+                // right side
+                if( boundaryCondition(1, 0) == dirichlet )
+                {
+                    un(n1b_l) = UTRUE( x(n1b_l), t+dt );
+                    un(nd1b_l)= 3.0*un(n1b_l) - 3.0*un(n1b_l-1) + un(n1b_l-2);
+                }
+                else
+                {   
+                    // neumann
+                    un(n1b_l) = UTRUE( x(n1b_l), t+dt );
+                    un(nd1b_l)= un(n1b_l-1) + 2.*dx*UTRUEX( x(n1b_l), t+dt );
+                }
+                
             }
             else
             {   
-                // neumann
-                un(n1b_l) = UTRUE( x(n1b_l), t+dt );
-                un(nd1b_l)= un(n1b_l-1) + 2.*dx*UTRUEX( x(n1b_l), t+dt );
+                if(commOption==0)
+                {
+                    // left side
+                    MPI_Send(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD);
+                    MPI_Recv(&un(nd1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+                    // right side
+                    MPI_Send(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD);
+                    MPI_Recv(&un(nd1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                }
+                else
+                {
+                    // left side
+                    MPI_Isend(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD, &sendLeft);
+                    MPI_Wait(&sendLeft, MPI_STATUS_IGNORE);
+                    MPI_Irecv(&un(nd1a_l),1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, &recvLeft);
+                    MPI_Wait(&recvLeft, MPI_STATUS_IGNORE);
+
+                    // right side
+                    MPI_Isend(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD, &sendRight);
+                    MPI_Wait(&sendRight, MPI_STATUS_IGNORE);
+                    MPI_Irecv(&un(nd1b_l),1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, &recvRight);
+                    MPI_Wait(&recvRight, MPI_STATUS_IGNORE);
+                }
             }
-            
         }
         else
-        {   
-            if(commOption==0)
-            {
-                // left side
-                MPI_Send(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD);
-                MPI_Recv(&un(nd1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-                // right side
-                MPI_Send(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD);
-                MPI_Recv(&un(nd1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            }
-            else
-            {
-                // left side
-                MPI_Isend(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD, &sendLeft);
-                MPI_Wait(&sendLeft, MPI_STATUS_IGNORE);
-                MPI_Irecv(&un(nd1a_l),1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, &recvLeft);
-                MPI_Wait(&recvLeft, MPI_STATUS_IGNORE);
-
-                // right side
-                MPI_Isend(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD, &sendRight);
-                MPI_Wait(&sendRight, MPI_STATUS_IGNORE);
-                MPI_Irecv(&un(nd1b_l),1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, &recvRight);
-                MPI_Wait(&recvRight, MPI_STATUS_IGNORE);
-            }
+        {
+            for (int side=0; side<=1; side++) {
+                const int i  = side == 0 ? n1a_l : n1b_l;
+                const int is = 1 - 2*side;
+                if (boundaryCondition(side, 0) == dirichlet){
+                    un(i)    = UTRUE( x(i), t+dt );
+                    un(i-is) = 3.0 * un(i) - 3.0 * un(i+is) + un(i+2*is); // extrapolate ghost
+                }
+                else {
+                    // neumann
+                    un(i-is) = un(i+is) - 2.*is*dx*UTRUEX(x(i),t+dt);
+                }
+            }    
         }
 
         if(debug>1)
@@ -344,7 +362,11 @@ int main( int argc, char *argv[] ) {
 
     curr = numSteps%2;
     Integer NTot = 0;
-    Integer sendCount = (myRank==0 || myRank==np-1) ? nx_l+2 : nx_l+1;
+    Integer sendCount;
+    if(np > 1)
+        sendCount = (myRank==0 || myRank==np-1) ? nx_l+2 : nx_l+1;
+    else
+        sendCount = nx_l+1+2*numGhost;
     Integer *recvCount_p = new Integer [np];
     MPI_Allgather(&sendCount, 1, MPI_INTEGER, recvCount_p, 1, MPI_INTEGER, MPI_COMM_WORLD);
     MPI_Allreduce(&sendCount, &NTot, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD);
@@ -404,6 +426,7 @@ int main( int argc, char *argv[] ) {
     Integer start = myRank==0   ? nd1a_l : n1a_l;
     Integer end   = myRank==np-1? nd1b_l : n1b_l;
     Integer k=0;
+    printf("start: %d, end: %d\n", start, end);
     for(int i=start; i<=end; i++)
     {
         sendArray_p[k] = uc(i);

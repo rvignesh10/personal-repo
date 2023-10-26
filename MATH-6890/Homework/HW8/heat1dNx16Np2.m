@@ -1,5 +1,5 @@
 % File written by heat1Dmpi.C
-xa=0; xb=1; kappa=0.1; t=0.5; maxErr= 3.387e-16; cpuTimeStep= 4.720e-04;
+xa=0; xb=1; kappa=0.1; t=0.5; maxErr= 3.387e-16; cpuTimeStep= 6.600e-05;
 nx=16; dx=  6.250000e-02; numGhost=1; n1a=0; n1b=16; nd1a=-1; nd1b=17;
 solutionName='polyDD';
 x=[-6.250000000000000e-02 0.000000000000000e+00 6.250000000000000e-02 1.250000000000000e-01 1.875000000000000e-01 2.500000000000000e-01 3.125000000000000e-01 3.750000000000000e-01 ...
