@@ -426,7 +426,6 @@ int main( int argc, char *argv[] ) {
     Integer start = myRank==0   ? nd1a_l : n1a_l;
     Integer end   = myRank==np-1? nd1b_l : n1b_l;
     Integer k=0;
-    printf("start: %d, end: %d\n", start, end);
     for(int i=start; i<=end; i++)
     {
         sendArray_p[k] = uc(i);
