@@ -1,0 +1,38 @@
+[drp01][[5951,1],1][btl_openib_component.c:1670:init_one_device] error obtaining device attributes for mlx4_0 errno says Protocol not supported
+[drp01][[5951,1],0][btl_openib_component.c:1670:init_one_device] error obtaining device attributes for mlx4_0 errno says Protocol not supported
+--------------------------------------------------------------------------
+WARNING: There was an error initializing an OpenFabrics device.
+
+  Local host:   drp01
+  Local device: mlx4_0
+--------------------------------------------------------------------------
+[1699151644.298970] [drp01:23350:0]      ib_dev.c:533  MXM  WARN  failed call to ibv_exp_use_priv_env(): Function not implemented
+[1699151644.299017] [drp01:23350:0]      ib_dev.c:544  MXM  ERROR ibv_query_device() returned 38: Function not implemented
+[1699151644.299143] [drp01:23349:0]      ib_dev.c:533  MXM  WARN  failed call to ibv_exp_use_priv_env(): Function not implemented
+[1699151644.299185] [drp01:23349:0]      ib_dev.c:544  MXM  ERROR ibv_query_device() returned 38: Function not implemented
+[1699151644.302158] [drp01:23350:0]       ib_verbs.h:84   UCX  ERROR ibv_exp_query_device(mlx4_0) returned 38: No space left on device
+[1699151644.302311] [drp01:23349:0]       ib_verbs.h:84   UCX  ERROR ibv_exp_query_device(mlx4_0) returned 38: No space left on device
+[1699151644.302497] [drp01:23350:0]       ib_verbs.h:84   UCX  ERROR ibv_exp_query_device(mlx4_1) returned 38: No space left on device
+[1699151644.302628] [drp01:23349:0]       ib_verbs.h:84   UCX  ERROR ibv_exp_query_device(mlx4_1) returned 38: No space left on device
+[1699151644.307392] [drp01:23349:0]      ib_dev.c:533  MXM  WARN  failed call to ibv_exp_use_priv_env(): Function not implemented
+[1699151644.307419] [drp01:23349:0]      ib_dev.c:544  MXM  ERROR ibv_query_device() returned 38: Function not implemented
+[1699151644.307548] [drp01:23350:0]      ib_dev.c:533  MXM  WARN  failed call to ibv_exp_use_priv_env(): Function not implemented
+[1699151644.307577] [drp01:23350:0]      ib_dev.c:544  MXM  ERROR ibv_query_device() returned 38: Function not implemented
+--------------------------------------------------------------------------
+Initialization of MXM library failed.
+
+  Error: Input/output error
+
+--------------------------------------------------------------------------
+[drp01:23350] mca_base_component_repository_open: unable to open mca_coll_hcoll: libhcoll.so.1: cannot open shared object file: No such file or directory (ignored)
+[drp01:23349] mca_base_component_repository_open: unable to open mca_coll_hcoll: libhcoll.so.1: cannot open shared object file: No such file or directory (ignored)
+[1699151644.330921] [drp01:23349:0]       ib_verbs.h:84   UCX  ERROR ibv_exp_query_device(mlx4_0) returned 38: No space left on device
+[1699151644.331086] [drp01:23350:0]       ib_verbs.h:84   UCX  ERROR ibv_exp_query_device(mlx4_0) returned 38: No space left on device
+[1699151644.331246] [drp01:23349:0]       ib_verbs.h:84   UCX  ERROR ibv_exp_query_device(mlx4_1) returned 38: No space left on device
+[1699151644.331385] [drp01:23350:0]       ib_verbs.h:84   UCX  ERROR ibv_exp_query_device(mlx4_1) returned 38: No space left on device
+nx=100000
+parseCommand: SETTING -nx=100000
+nx=100000
+[drp01:23345] 1 more process has sent help message help-mpi-btl-openib.txt / error in device init
+[drp01:23345] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages
+[drp01:23345] 1 more process has sent help message help-mtl-mxm.txt / mxm init

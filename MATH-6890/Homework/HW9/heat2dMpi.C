@@ -3,14 +3,15 @@
 //     HEAT EQUATION IN TWO DIMENSIONS
 //
 // =====================================================================
-#define USE_PPP
+#define DUSE_PPP
 
+#include <stdio.h>
 #include <mpi.h>
 
 typedef double Real;
 typedef int Integer;
 
-#include <string.h>
+#include <string>
 using std::string;
 using std::max;
 
@@ -25,7 +26,7 @@ using std::max;
 // -----------------------------------------------------------------------
 inline double getCPU()
 {
-    #ifndef USE_PPP
+   #ifndef DyUSE_PPP
         return MPI_Wtime();
     #else
         return (1.0*std::clock())/CLOCKS_PER_SEC;
@@ -76,9 +77,11 @@ int main(int argc, char *argv[])
   
   MPI_Init(&argc, &argv);
   Integer root=0;
-  Integer myRank, np;
+  int myRank;
+  int *np;
+  //MPI_Comm comm = MPI_COMM_WORLD;
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-  MPI_Comm_size(MPI_COMM_WORLD, &np);
+  MPI_Comm_size(MPI_COMM_WORLD, np);
   
   Real tFinal= 0.1;
   Integer nx = 100;
@@ -175,7 +178,7 @@ int main(int argc, char *argv[])
     fflush(debugFile);
   }
 
-
+  MPI_Finalize();
   return 0;
 }
 
