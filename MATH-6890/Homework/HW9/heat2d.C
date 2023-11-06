@@ -2,7 +2,7 @@
 #include <string>
 using std::string;
 using std::max;
-
+#include <cmath>
 #include <mpi.h>
 
 typedef double Real;
@@ -101,6 +101,7 @@ int main(int argc, char* argv[]){
     }
     else if( parseCommand(line, "-debug=", debug, echo) ) {}
     else if( parseCommand(line, "-saveMatlab=", saveMatlab, echo) ) {}
+    else if( parseCommand(line, "-tFinal=", tFinal, echo) ) {}
   }
 
   FILE *debugFile=NULL;
@@ -254,6 +255,8 @@ int main(int argc, char* argv[]){
       abort();
     }
     // set boundary conditions
+    if(np>1)
+    {
     if( myRank==0 )
     {
       // set side boundary conditions - left and right
@@ -335,6 +338,31 @@ int main(int argc, char* argv[]){
       MPI_Recv(&un(nd1a, nd2a_l), nd1, MPI_DOUBLE, myRank-1, recv_btmG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       MPI_Recv(&un(nd1a, nd2b_l), nd1, MPI_DOUBLE, myRank+1, recv_topG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
+    }
+    else{
+      for(int j=n2a_l;j<=n2b_l;j++)
+      {
+        un(n1a, j) = UTRUE( x(n1a, j, 0), x(n1a, j, 1), t+dt );
+        //un(nd1a, j)= UTRUE( x(nd1a,j, 0), x(nd1a,j, 1), t+dt );                                                                                                            
+        un(nd1a,j) = 3.*un(n1a, j) - 3.*un(n1a+1, j) + un(n1a+2, j); // extrapolate                                                                                          
+        un(n1b, j) = UTRUE( x(n1b, j, 0), x(n1b, j, 1), t+dt );
+        //un(nd1b, j)= UTRUE( x(nd1b,j, 0), x(nd1b,j, 1), t+dt );                                                                                                            
+        un(nd1b,j) = 3.*un(n1b, j) - 3.*un(n1b-1, j) + un(n1b-2, j); // extrapolate 
+      }
+      for(int i=n1a; i<=n1b; i++)
+      {
+        un(i, n2a_l) = UTRUE( x(i, n2a_l, 0), x(i, n2a_l, 1), t+dt );
+        //un(i, nd2a_l)= UTRUE( x(i, nd2a_l,0), x(i, nd2a_l,1), t+dt );                                                                                                      
+        un(i, nd2a_l)= 3.*un(i, n2a_l) - 3.*un(i, n2a_l+1) + un(i, n2a_l+2);
+        un(i, n2b_l) = UTRUE( x(i, n2b_l, 0), x(i, n2b_l, 1), t+dt );
+        //un(i, nd2b_l)= UTRUE( x(i, nd2b_l,0), x(i, nd2b_l,1), t+dt );                                                                                                      
+        un(i, nd2b_l)= 3.*un(i, n2b_l) - 3.*un(i, n2b_l-1) + un(i, n2b_l-2);
+      }  
+      un(nd1a, nd2a_l) = UTRUE( x(nd1a, nd2a_l, 0), x(nd1a, nd2a_l, 1), t+dt );
+      un(nd1b, nd2a_l) = UTRUE( x(nd1b, nd2a_l, 0), x(nd1b, nd2a_l, 1), t+dt );
+      un(nd1a, nd2b_l) = UTRUE( x(nd1a, nd2b_l, 0), x(nd1a, nd2b_l, 1), t+dt );
+      un(nd1b, nd2b_l) = UTRUE( x(nd1b, nd2b_l, 0), x(nd1b, nd2b_l, 1), t+dt );
+    }
     // check for error if debug
     if(debug>1)
     {
@@ -372,7 +400,7 @@ int main(int argc, char* argv[]){
   for(int i=nd1a; i<=nd1b; i++)
   {
     err(i, j) = uc(i, j) - UTRUE( x(i, j, 0), x(i, j, 1), t );
-    maxErr_l= max( maxErr_l, abs(err(i, j)) );
+    maxErr_l= max( maxErr_l, fabs(err(i, j)) );
   }
   maxErr_g = maxErr_l;
   MPI_Reduce(&maxErr_l, &maxErr_g, 1, MPI_DOUBLE, MPI_MAX, root, MPI_COMM_WORLD);
@@ -392,6 +420,11 @@ int main(int argc, char* argv[]){
     fprintf(debugFile, "maxErr local : %1.9e\n", maxErr_l);
     fprintf(debugFile, "maxErr global: %1.9e\n", maxErr_g);
     fflush(debugFile);
+  }
+  if(myRank==root)
+  {
+  fprintf(stdout,"\n maxErr global: %1.9e, max CPUTime: %1.9e\n", maxErr_g, cpuTimeStep_g);
+  fflush(stdout);
   }
 
   Integer NTot=0;
