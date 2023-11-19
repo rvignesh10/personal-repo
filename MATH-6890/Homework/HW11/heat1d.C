@@ -5,6 +5,7 @@
 #include <assert.h>
 
 #define USE_PPP
+#define NUM_THREADS 128
 
 #include <string>
 using std::string;
@@ -26,8 +27,26 @@ inline double getCPU()
 // MPI header file
 #include <mpi.h>
 
+// ------------------------------------------------------------------------
+// wrapper function definitions
+// ------------------------------------------------------------------------
+void heat1dSetInitialCondition(double *dev_uc, double *dev_x, int Nb, int Nt, int *dev_Nt, int *dev_nd1L);
+void heat1dForwardEulerUpdate(double *dev_uc, double *dev_un, double *dev_x, double *dev_rx, double *dev_t, 
+                                         int Nb, int Nt, int *dev_Nt, int *dev_n1aL, int *dev_n1bL, int *dev_numGhost, float *gpuStepTime);
+void setSpatialMeshNodes1D( double *dev_x, double *dev_xa, double *dev_dx, int *dev_nd1L, int Nb, int Nt, int *dev_Nt );
+void heat1dErrorCalc(double *dev_err, double *dev_uc, double *dev_x, double *dev_t, int Nb, int Nt, int *dev_Nt, int *dev_nd1L);
+void AllocateCudaMemory( double *dev_var, int n_size );
+void AllocateCudaMemory( int *dev_var, int n_size );
+void FreeCudaMemory( double *dev_var );
+void FreeCudaMemory( int *dev_var );
+void MemcpyHostToDev( double *dev_var, double *hst_var, int n_size );
+void MemcpyHostToDev( int *dev_var, int *hst_var, int n_size );
+void MemcpyDevToHost( double *hst_var, double *dev_var, int n_size );
+void MemcpyDevToHost( int *hst_var, int *dev_var, int n_size );
+
 // parseCommand
 #include "parseCommand.h"
+// getting LocalIndexBounds
 #include "getLocalIndexBounds.h"
 
 #define POLY_DD 0
@@ -100,7 +119,6 @@ int main( int argc, char *argv[] ) {
         line = argv[i];
         if( parseCommand(line, "-nx=", nx, echo) ) {}
         else if( parseCommand(line, "-option=", option, echo) ) {}
-        else if( parseCommand(line, "-commOption=", commOption, echo) ) {}
         else if( parseCommand(line, "-root=", root, echo) ) {}
         else if( parseCommand(line, "-debug=", debug, echo) ) {}
         else if( parseCommand(line, "-tFinal=", tFinal, echo) ) {}
@@ -121,20 +139,40 @@ int main( int argc, char *argv[] ) {
     Real cfl  = 0.9;
 
     Real dx = (xb - xa)/nx;
-    const Integer numGhost = 1;
+    // allocate and copy memory from host to device
+    Real *dev_xa, *dev_dx;
+    AllocateCudaMemory(dev_xa, 1); MemcpyHostToDev(dev_xa, &xa, 1);
+    AllocateCudaMemory(dev_dx, 1); MemcpyHostToDev(dev_dx, &dx, 1);
+
+    Integer numGhost = 1;
+    int *dev_numGhost;
+    AllocateCudaMemory(dev_numGhost, 1); MemcpyHostToDev(dev_numGhost, &numGhost, 1);
     Integer nx_l, n1a_l, n1b_l;
     getLocalIndexBounds(myRank, np, nx, nx_l, n1a_l, n1b_l);
-    const Integer nd1a_l = n1a_l - numGhost;
-    const Integer nd1b_l = n1b_l + numGhost;
-    const Integer nd1_l = nd1b_l - nd1a_l + 1;
+    Integer nd1a_l = n1a_l - numGhost;
+    Integer nd1b_l = n1b_l + numGhost;
+    Integer nd1_l = nd1b_l - nd1a_l + 1;
+
+    // allocate and copy memory from host to device
+    int *dev_n1aL, *dev_n1bL, *dev_nd1L;
+    AllocateCudaMemory(dev_n1aL, 1); MemcpyHostToDev(dev_n1aL, &n1a_l, 1);
+    AllocateCudaMemory(dev_n1bL, 1); MemcpyHostToDev(dev_n1bL, &n1b_l, 1);
+    AllocateCudaMemory(dev_nd1L, 1); MemcpyHostToDev(dev_nd1L, &nd1_l, 1);
 
     // Local spatial grid
     Real *x_l = new Real [nd1_l];
     #define x(id) x_l[(id) - nd1a_l] 
-
-    // populate local grid
-    for(int i=nd1a_l; i<=nd1b_l; i++)
-        x(i) = xa + (i)*dx;
+    
+    // find cuda blocks and threads
+    int Nt = NUM_THREADS;
+    int Nb = ceil( (1.*(nd1_l))/Nt );
+    int *dev_Nt;
+    AllocateCudaMemory(dev_Nt, 1); MemcpyHostToDev(dev_Nt, &Nt, 1);
+    // allocate and copy memory from host to device for spatial location
+    Real *dev_x;
+    AllocateCudaMemory(dev_x, nd1_l);
+    setSpatialMeshNodes1D(dev_x, dev_xa, dev_dx, dev_nd1L, Nb, Nt, dev_Nt);
+    MemcpyDevToHost(x_l, dev_x, nd1_l);
 
     if (debug>0)
     {
@@ -187,13 +225,18 @@ int main( int argc, char *argv[] ) {
     #define uc(id) u_l[curr][(id)-nd1a_l]
     #define un(id) u_l[next][(id)-nd1a_l]
 
+    double *dev_uc, *dev_un;
+    AllocateCudaMemory(dev_uc, nd1_l);
+    AllocateCudaMemory(dev_un, nd1_l);
+
     // initial conditions set-up
     Real t = 0.0;
+    // allocate memory and copy value on gpu
+    double *dev_t;
+    AllocateCudaMemory(dev_t, 1); MemcpyHostToDev(dev_t, &t, 1);
     Integer curr = 0;
-    for(int i=nd1a_l; i<=nd1b_l; i++)
-    {
-        uc(i) = UTRUE(x(i), t);
-    }
+    heat1dSetInitialCondition(dev_uc, dev_x, Nb, Nt, dev_Nt, dev_nd1L);
+    MemcpyDevToHost(&uc(nd1a_l), dev_uc, nd1_l);
 
     if(debug>0)
     {   
@@ -209,7 +252,9 @@ int main( int argc, char *argv[] ) {
     Real dt            = cfl * 0.5 * dx2 / kappa;
     const int numSteps = ceil( tFinal/dt );
     dt                 = tFinal/numSteps;
-    const Real rx      = kappa * dt / dx2;
+    Real rx      = kappa * dt / dx2;
+    double *dev_rx;
+    AllocateCudaMemory(dev_rx, 1); MemcpyHostToDev(dev_rx, &rx, 1);
 
     if(myRank == 0)
     {
@@ -218,20 +263,30 @@ int main( int argc, char *argv[] ) {
 
     /* ---- Time stepping loop ---- */
     Real cpu0 = getCPU();
+    float gpuTime = 0.0;
     for (int n=0; n<numSteps; n++)
     {
         const Integer curr = n%2;
         const Integer next = (n+1)%2;
         t = n*dt; // current time
-        for(int j=n1a_l; j<=n1b_l; j++)
-        {
-            un(j) = uc(j) + rx*( uc(j+1) -2.*uc(j) + uc(j-1) ) + dt*FORCE( x(j), t );
-        }
+
+        float gpuStepTime;
+        // copy current value to device from host
+        MemcpyHostToDev(dev_t, &t, 1);
+        MemcpyHostToDev(dev_uc, &uc(nd1a_l), nd1_l);
+        // perform time stepping in GPU
+        heat1dForwardEulerUpdate(dev_uc, dev_un, dev_x, dev_rx, dev_t, Nb, Nt, dev_Nt, dev_n1aL, dev_n1bL, dev_numGhost, &gpuStepTime);
+        gpuTime += gpuStepTime;
+        // copy values of un back to host
+        MemcpyDevToHost(&un(nd1a_l), dev_un, nd1_l);
+
         // set boundary conditions
         if (np > 1)
         {
             if(myRank == 0)
             {   
+                // right side
+                MPI_Send(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD);
                 // left side
                 if(boundaryCondition(0, 0) == dirichlet)
                 {
@@ -244,35 +299,12 @@ int main( int argc, char *argv[] ) {
                     un(n1a_l) = UTRUE( x(n1a_l), t+dt );
                     un(nd1a_l)= un(n1a_l+1) - 2.*dx*UTRUEX( x(n1a_l), t+dt );
                 }
-                // right side
-                if (commOption==0)
-                {
-                    MPI_Send(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD);
-                    MPI_Recv(&un(nd1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                }
-                else
-                {
-                    MPI_Isend(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD, &sendRight);
-                    MPI_Wait(&sendRight, MPI_STATUS_IGNORE);
-                    MPI_Irecv(&un(nd1b_l),1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, &recvRight);
-                    MPI_Wait(&recvRight, MPI_STATUS_IGNORE);
-                }
+                MPI_Recv(&un(nd1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
             else if(myRank == np-1 )
             {   
                 // left side
-                if(commOption==0)
-                {
-                    MPI_Send(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD);
-                    MPI_Recv(&un(nd1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                }
-                else
-                {
-                    MPI_Isend(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD, &sendLeft);
-                    MPI_Wait(&sendLeft, MPI_STATUS_IGNORE);
-                    MPI_Irecv(&un(nd1a_l),1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, &recvLeft);
-                    MPI_Wait(&recvLeft, MPI_STATUS_IGNORE);
-                }
+                MPI_Send(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD);
                 // right side
                 if( boundaryCondition(1, 0) == dirichlet )
                 {
@@ -285,34 +317,16 @@ int main( int argc, char *argv[] ) {
                     un(n1b_l) = UTRUE( x(n1b_l), t+dt );
                     un(nd1b_l)= un(n1b_l-1) + 2.*dx*UTRUEX( x(n1b_l), t+dt );
                 }
-                
+                MPI_Recv(&un(nd1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
             else
             {   
-                if(commOption==0)
-                {
-                    // left side
-                    MPI_Send(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD);
-                    MPI_Recv(&un(nd1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                // left and right side
+                MPI_Send(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD);
+                MPI_Send(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD);
 
-                    // right side
-                    MPI_Send(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD);
-                    MPI_Recv(&un(nd1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                }
-                else
-                {
-                    // left side
-                    MPI_Isend(&un(n1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lsend, MPI_COMM_WORLD, &sendLeft);
-                    MPI_Wait(&sendLeft, MPI_STATUS_IGNORE);
-                    MPI_Irecv(&un(nd1a_l),1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, &recvLeft);
-                    MPI_Wait(&recvLeft, MPI_STATUS_IGNORE);
-
-                    // right side
-                    MPI_Isend(&un(n1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rsend, MPI_COMM_WORLD, &sendRight);
-                    MPI_Wait(&sendRight, MPI_STATUS_IGNORE);
-                    MPI_Irecv(&un(nd1b_l),1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, &recvRight);
-                    MPI_Wait(&recvRight, MPI_STATUS_IGNORE);
-                }
+                MPI_Recv(&un(nd1a_l), 1, MPI_DOUBLE, myRank-1, bcs_Lrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(&un(nd1b_l), 1, MPI_DOUBLE, myRank+1, bcs_Rrecv, MPI_COMM_WORLD, MPI_STATUS_IGNORE);   
             }
         }
         else
@@ -346,6 +360,8 @@ int main( int argc, char *argv[] ) {
     }
     Real cpuTimeStep = getCPU()-cpu0;
     Real cpuTimeStep_g = cpuTimeStep;
+    Real gpuTime_g = gpuTime;
+    MPI_Reduce(&gpuTime, &gpuTime_g, 1, MPI_DOUBLE, MPI_MAX, root, MPI_COMM_WORLD);
     mpi_op = MPI_Reduce(&cpuTimeStep, &cpuTimeStep_g, 1, MPI_DOUBLE, MPI_MAX, root, MPI_COMM_WORLD);
     if (mpi_op != MPI_SUCCESS)
         abort();
@@ -404,10 +420,17 @@ int main( int argc, char *argv[] ) {
 
     Real *err_p = new Real [nd1_l];
     #define err(i) err_p[(i) - nd1a_l]
+
+    Real *dev_err;
+    AllocateCudaMemory(dev_err, nd1_l);
+    MemcpyHostToDev(dev_uc, &uc(nd1a_l), nd1_l);
+    MemcpyHostToDev(dev_t, &t, 1);
+    heat1dErrorCalc(dev_err, dev_uc, dev_x, dev_t, Nb, Nt, dev_Nt, dev_nd1L);
+    MemcpyDevToHost(err_p, dev_err, nd1_l);
+
     Real maxErr_l = 0., maxErr_g;
     for(int i=nd1a_l; i<=nd1b_l; i++)
     {
-        err(i)  = uc(i) - UTRUE(x(i), t);
         maxErr_l= max(maxErr_l, abs(err(i)));
     }
     maxErr_g = maxErr_l;
@@ -493,6 +516,14 @@ int main( int argc, char *argv[] ) {
     delete [] uFinal_p;
     delete [] errorG_p;
     delete [] xloc_p;
+
+    // Free cuda memory
+    FreeCudaMemory(dev_xa); FreeCudaMemory(dev_dx);
+    FreeCudaMemory(dev_n1aL); FreeCudaMemory(dev_n1bL); FreeCudaMemory(dev_nd1L); FreeCudaMemory(dev_numGhost);
+    FreeCudaMemory(dev_Nt); FreeCudaMemory(dev_x);
+    FreeCudaMemory(dev_uc); FreeCudaMemory(dev_un);
+    FreeCudaMemory(dev_rx); FreeCudaMemory(dev_t);
+    FreeCudaMemory(dev_err);
 
     // undef macros
     #undef x
