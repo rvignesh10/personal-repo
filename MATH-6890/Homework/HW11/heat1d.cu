@@ -222,6 +222,12 @@ int main(int argc, char *argv[]){
     mesh1d<<<nb, nt>>>(x_d, nd1_d, nd1a_d, nd1b_d, xa_d, dx_d, nt_d);
     cudaMemcpy(x_p, x_d, nd1*sizeof(double), cudaMemcpyDeviceToHost);
 
+    if(debug>0){
+        for(int i=nd1a; i<=nd1b; i++)
+            printf("%f\t", x(i));
+        printf("\n");
+    }
+
     const int numSides = 2;
     const int dirichlet = 1, neumann = 2;
     const int numberOfDimensions = 1;
@@ -322,7 +328,15 @@ int main(int argc, char *argv[]){
                 un(i-is) = un(i+is) - 2.*is*dx*UTRUEX(x(i),t+dt);
             }
         }
-
+        if(debug>0){
+            Real *err_p = new Real[nd1];
+            Real maxErr = 0.;
+            for(int i=nd1a; i<=nd1b; i++){
+                err_p[i] = un(i) - UTRUE(x(i), t);
+                printf("%25.15e\t", err_p[i]);
+            }
+            printf("\n");
+        }
     }
     Real cpuTimeStep = getCPU()-cpu0;
 
