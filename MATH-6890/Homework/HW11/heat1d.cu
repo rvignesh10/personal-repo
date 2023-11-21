@@ -369,6 +369,9 @@ int main(int argc, char *argv[]){
     cudaFree(xa_d); 
     cudaFree(nt_d); 
     cudaFree(n1a_d); cudaFree(n1b_d); cudaFree(nd1a_d); cudaFree(nd1b_d); cudaFree(nd1_d);
+    cudaFree(x_d); 
+    cudaFree(u_d[0]); cudaFree(u_d[1]);
+    cudaFree(t_d); cudaFree(dt_d); cudaFree(rx_d); 
 
     return 0;
 }
