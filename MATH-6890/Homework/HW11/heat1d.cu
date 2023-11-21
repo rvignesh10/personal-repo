@@ -183,7 +183,7 @@ int main(int argc, char *argv[]){
     
     Real xa = 0.0, xb = 1.0 ;
     Real *xa_d;
-    cudaMalloc((void **)&xa_d, sizeof(Real)) ; cudaMemcpy(xa_d, &xa, sizeof(Real), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&xa_d, sizeof(double)) ; cudaMemcpy(xa_d, &xa, sizeof(double), cudaMemcpyHostToDevice);
 
     // ============= Grid and indexing==============
     //            xa                             xb
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]){
 
     Real dx = (xb - xa)/Nx;
     Real *dx_d;
-    cudaMalloc((void **)&dx_d, sizeof(Real)) ; cudaMemcpy(dx_d, &dx, sizeof(Real), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&dx_d, sizeof(double)) ; cudaMemcpy(dx_d, &dx, sizeof(double), cudaMemcpyHostToDevice);
     int numGhost = 1;
     int n1a       = 0;
     int n1b       = Nx;
@@ -218,9 +218,9 @@ int main(int argc, char *argv[]){
     Real *x_p = new Real [nd1];
     # define x(i) x_p[i-nd1a] 
     Real *x_d;
-    cudaMalloc((void **)&x_d, nd1*sizeof(Real)) ; 
+    cudaMalloc((void **)&x_d, nd1*sizeof(double)) ; 
     mesh1d<<<nb, nt>>>(x_d, nd1_d, nd1a_d, nd1b_d, xa_d, dx_d, nt_d);
-    cudaMemcpy(x_p, x_d, nd1*sizeof(Real), cudaMemcpyDeviceToHost);
+    cudaMemcpy(x_p, x_d, nd1*sizeof(double), cudaMemcpyDeviceToHost);
 
     const int numSides = 2;
     const int dirichlet = 1, neumann = 2;
@@ -265,17 +265,17 @@ int main(int argc, char *argv[]){
     // initial condition set up
     Real t = 0.0;
     Real *t_d;
-    cudaMalloc((void **)&t_d, sizeof(Real)) ; cudaMemcpy(t_d, &t, sizeof(Real), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&t_d, sizeof(double)) ; cudaMemcpy(t_d, &t, sizeof(double), cudaMemcpyHostToDevice);
     int curr = 0;
     Real *u_d[2];
-    cudaMalloc(void **)&u_d[0], nd1*sizeof(Real) ;
-    cudaMalloc(void **)&u_d[1], nd1*sizeof(Real) ;
+    cudaMalloc(void **)&u_d[0], nd1*sizeof(double) ;
+    cudaMalloc(void **)&u_d[1], nd1*sizeof(double) ;
     Real *uc_h = &uc(nd1a);
     Real *un_h = nullptr;
     Real *uc_d = u_d+curr;
     Real *un_d = nullptr;
     setInitialCondition(uc_d, nd1_d, nd1a_d, nd1b_d, x_d, t_d, nt_d);
-    cudaMemcpy(uc_h, uc_d, nd1*sizeof(Real), cudaMemcpyDeviceToHost);
+    cudaMemcpy(uc_h, uc_d, nd1*sizeof(double), cudaMemcpyDeviceToHost);
 
     /* Time-step restrictions */
     const Real dx2     = dx * dx;
@@ -283,10 +283,10 @@ int main(int argc, char *argv[]){
     const int numSteps = ceil( tFinal/dt );
     dt                 = tFinal/numSteps;
     Real *dt_d;
-    cudaMalloc((void **)&dt_d, sizeof(Real)) ; cudaMemcpy(dt_d, &dt, sizeof(Real), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&dt_d, sizeof(double)) ; cudaMemcpy(dt_d, &dt, sizeof(double), cudaMemcpyHostToDevice);
     const Real rx      = kappa * dt / dx2;
     Real *rx_d;
-    cudaMalloc((void **)&rx_d, sizeof(Real)) ; cudaMemcpy(rx_d, &rx, sizeof(Real), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&rx_d, sizeof(double)) ; cudaMemcpy(rx_d, &rx, sizeof(double), cudaMemcpyHostToDevice);
 
     printf("------------------- Solve the heat equation in 1D solution=%s --------------------- \n",solutionName);
     printf("  numGhost=%d, n1a=%d, n1b=%d, nd1a=%d, nd1b=%d\n",numGhost,n1a,n1b,nd1a,nd1b);
@@ -299,19 +299,19 @@ int main(int argc, char *argv[]){
         const int curr = n % 2;
         const int next = (n + 1) % 2;
         t = n * dt; // current time
-        cudaMemcpy(t_d, &t, sizeof(Real), cudaMemcpyHostToDevice);
+        cudaMemcpy(t_d, &t, sizeof(double), cudaMemcpyHostToDevice);
         
         uc_h = &uc(nd1a);
         un_h = &un(nd1a);
 
         uc_d = u_d+curr;
         un_d = u_d+next;
-        cudaMemcpy(uc_d, uc_h, nd1*sizeof(Real), cudaMemcpyHostToDevice);
+        cudaMemcpy(uc_d, uc_h, nd1*sizeof(double), cudaMemcpyHostToDevice);
         heat1dForwardEulerTimeStep<<<nb, nt>>>(uc_d, un_d, x_d, nd1_d, nd1a_d, nd1b_d, rx_d, dt_d, t_d, nt_d);
-        cudaMemcpy(un_h, un_d, nd1*sizeof(Real), cudaMemcpyDeviceToHost);
+        cudaMemcpy(un_h, un_d, nd1*sizeof(double), cudaMemcpyDeviceToHost);
         // set boundary conditions on host
         for (int side=0; side<=1; side++) {
-            const int i  = side == 0 ? ja : jb;
+            const int i  = side == 0 ? n1a : n1b;
             const int is = 1 - 2*side;
             if (boundaryCondition(side, 0) == dirichlet){
                 un(i)    = UTRUE( x(i), t+dt );
@@ -347,7 +347,7 @@ int main(int argc, char *argv[]){
     FILE *matlabFile = fopen(matlabFileName.c_str(),"w");
     fprintf(matlabFile,"%% File written by heat1d.C\n");
     fprintf(matlabFile,"xa=%g; xb=%g; kappa=%g; t=%g; maxErr=%10.3e; cpuTimeStep=%10.3e;\n",xa,xb,kappa,tFinal,maxErr,cpuTimeStep);
-    fprintf(matlabFile,"Nx=%d; dx=%14.6e; numGhost=%d; n1a=%d; n1b=%d; nd1a=%d; nd1b=%d;\n",Nx,dx,numGhost,ja,jb,nd1a,nd1b);
+    fprintf(matlabFile,"Nx=%d; dx=%14.6e; numGhost=%d; n1a=%d; n1b=%d; nd1a=%d; nd1b=%d;\n",Nx,dx,numGhost,n1a,n1b,nd1a,nd1b);
     fprintf(matlabFile,"solutionName=\'%s\';\n",solutionName);
 
     if (saveMatlab > 1)
