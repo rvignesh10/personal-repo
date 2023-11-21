@@ -268,11 +268,11 @@ int main(int argc, char *argv[]){
     cudaMalloc((void **)&t_d, sizeof(double)) ; cudaMemcpy(t_d, &t, sizeof(double), cudaMemcpyHostToDevice);
     int curr = 0;
     Real *u_d[2];
-    cudaMalloc(void **)&u_d[0], nd1*sizeof(double) ;
-    cudaMalloc(void **)&u_d[1], nd1*sizeof(double) ;
+    cudaMalloc((void **)&u_d[0], nd1*sizeof(double)) ;
+    cudaMalloc((void **)&u_d[1], nd1*sizeof(double)) ;
     Real *uc_h = &uc(nd1a);
     Real *un_h = nullptr;
-    Real *uc_d = u_d+curr;
+    Real *uc_d = u_d[curr];
     Real *un_d = nullptr;
     setInitialCondition(uc_d, nd1_d, nd1a_d, nd1b_d, x_d, t_d, nt_d);
     cudaMemcpy(uc_h, uc_d, nd1*sizeof(double), cudaMemcpyDeviceToHost);
@@ -304,8 +304,8 @@ int main(int argc, char *argv[]){
         uc_h = &uc(nd1a);
         un_h = &un(nd1a);
 
-        uc_d = u_d+curr;
-        un_d = u_d+next;
+        uc_d = u_d[curr];
+        un_d = u_d[next];
         cudaMemcpy(uc_d, uc_h, nd1*sizeof(double), cudaMemcpyHostToDevice);
         heat1dForwardEulerTimeStep<<<nb, nt>>>(uc_d, un_d, x_d, nd1_d, nd1a_d, nd1b_d, rx_d, dt_d, t_d, nt_d);
         cudaMemcpy(un_h, un_d, nd1*sizeof(double), cudaMemcpyDeviceToHost);
