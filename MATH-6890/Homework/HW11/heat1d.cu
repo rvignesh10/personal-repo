@@ -96,7 +96,7 @@ __global__ void setInitialCondition(double *u_d, int *nd1_d, int *nd1a_d, int *n
     #define u(i1) u_d[i1 - *nd1a_d]
     #define x(i1) x_d[i1 - *nd1a_d]
 
-    if(idx >= *nd1a_d && idx <= nd1b_d)
+    if(idx >= *nd1a_d && idx <= *nd1b_d)
         u(idx) = UTRUE( x(idx), *t_d );
 
     #undef x
@@ -183,7 +183,7 @@ int main(int argc, char *argv[]){
     
     Real xa = 0.0, xb = 1.0 ;
     Real *xa_d;
-    checkCudaErrors( cudaMalloc((void **)&xa_d, sizeof(Real)) ); cudaMemcpy(xa_d, &xa, sizeof(Real), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&xa_d, sizeof(Real)) ; cudaMemcpy(xa_d, &xa, sizeof(Real), cudaMemcpyHostToDevice);
 
     // ============= Grid and indexing==============
     //            xa                             xb
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]){
 
     Real dx = (xb - xa)/Nx;
     Real *dx_d;
-    checkCudaErrors( cudaMalloc((void **)&dx_d, sizeof(Real)) ); cudaMemcpy(dx_d, &dx, sizeof(Real), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&dx_d, sizeof(Real)) ; cudaMemcpy(dx_d, &dx, sizeof(Real), cudaMemcpyHostToDevice);
     int numGhost = 1;
     int n1a       = 0;
     int n1b       = Nx;
@@ -206,19 +206,19 @@ int main(int argc, char *argv[]){
     int nt = MAX_NUM_THREADS;
     int nb = ceil( (1.*nd1)/nt );
     int *nt_d;
-    checkCudaErrors( cudaMalloc((void **)&nt_d, sizeof(int)) );  cudaMemcpy(nt_d, &nt, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&nt_d, sizeof(int)) ;  cudaMemcpy(nt_d, &nt, sizeof(int), cudaMemcpyHostToDevice);
 
     int *n1a_d, *n1b_d, *nd1a_d, *nd1b_d, *nd1_d;
-    checkCudaErrors( cudaMalloc((void **)&n1a_d, sizeof(int)) );  cudaMemcpy(n1a_d, &n1a, sizeof(int), cudaMemcpyHostToDevice);
-    checkCudaErrors( cudaMalloc((void **)&n1b_d, sizeof(int)) );  cudaMemcpy(n1b_d, &n1b, sizeof(int), cudaMemcpyHostToDevice);
-    checkCudaErrors( cudaMalloc((void **)&nd1a_d, sizeof(int)) ); cudaMemcpy(nd1a_d,&nd1a,sizeof(int), cudaMemcpyHostToDevice);
-    checkCudaErrors( cudaMalloc((void **)&nd1b_d, sizeof(int)) ); cudaMemcpy(nd1b_d,&nd1b,sizeof(int), cudaMemcpyHostToDevice);
-    checkCudaErrors( cudaMalloc((void **)&nd1_d, sizeof(int)) );  cudaMemcpy(nd1_d, &nd1, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&n1a_d, sizeof(int)) ;  cudaMemcpy(n1a_d, &n1a, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&n1b_d, sizeof(int)) ;  cudaMemcpy(n1b_d, &n1b, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&nd1a_d, sizeof(int)) ; cudaMemcpy(nd1a_d,&nd1a,sizeof(int), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&nd1b_d, sizeof(int)) ; cudaMemcpy(nd1b_d,&nd1b,sizeof(int), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&nd1_d, sizeof(int)) ;  cudaMemcpy(nd1_d, &nd1, sizeof(int), cudaMemcpyHostToDevice);
     // creating a 1D array of grid points
     Real *x_p = new Real [nd1];
     # define x(i) x_p[i-nd1a] 
     Real *x_d;
-    cudaCheckErrors( cudaMalloc((void **)&x_d, nd1*sizeof(Real)) ); 
+    cudaMalloc((void **)&x_d, nd1*sizeof(Real)) ; 
     mesh1d<<<nb, nt>>>(x_d, nd1_d, nd1a_d, nd1b_d, xa_d, dx_d, nt_d);
     cudaMemcpy(x_p, x_d, nd1*sizeof(Real), cudaMemcpyDeviceToHost);
 
@@ -265,11 +265,11 @@ int main(int argc, char *argv[]){
     // initial condition set up
     Real t = 0.0;
     Real *t_d;
-    checkCudaErrors( cudaMalloc((void **)&t_d, sizeof(Real)) ); cudaMemcpy(t_d, &t, sizeof(Real), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&t_d, sizeof(Real)) ; cudaMemcpy(t_d, &t, sizeof(Real), cudaMemcpyHostToDevice);
     int curr = 0;
     Real *u_d[2];
-    checkCudaErrors( cudaMalloc(void **)&u_d[0], nd1*sizeof(Real) );
-    checkCudaErrors( cudaMalloc(void **)&u_d[1], nd1*sizeof(Real) );
+    cudaMalloc(void **)&u_d[0], nd1*sizeof(Real) ;
+    cudaMalloc(void **)&u_d[1], nd1*sizeof(Real) ;
     Real *uc_h = &uc(nd1a);
     Real *un_h = nullptr;
     Real *uc_d = u_d+curr;
@@ -283,13 +283,13 @@ int main(int argc, char *argv[]){
     const int numSteps = ceil( tFinal/dt );
     dt                 = tFinal/numSteps;
     Real *dt_d;
-    checkCudaErrors( cudaMalloc((void **)&dt_d, sizeof(Real)) ); cudaMemcpy(dt_d, &dt, sizeof(Real), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&dt_d, sizeof(Real)) ; cudaMemcpy(dt_d, &dt, sizeof(Real), cudaMemcpyHostToDevice);
     const Real rx      = kappa * dt / dx2;
     Real *rx_d;
-    checkCudaErrors( cudaMalloc((void **)&rx_d, sizeof(Real)) ); cudaMemcpy(rx_d, &rx, sizeof(Real), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&rx_d, sizeof(Real)) ; cudaMemcpy(rx_d, &rx, sizeof(Real), cudaMemcpyHostToDevice);
 
     printf("------------------- Solve the heat equation in 1D solution=%s --------------------- \n",solutionName);
-    printf("  numGhost=%d, n1a=%d, n1b=%d, nd1a=%d, nd1b=%d\n",numGhost,ja,jb,nd1a,nd1b);
+    printf("  numGhost=%d, n1a=%d, n1b=%d, nd1a=%d, nd1b=%d\n",numGhost,n1a,n1b,nd1a,nd1b);
     printf("  numSteps=%d, Nx=%d, kappa=%g, tFinal=%g, boundaryCondition(0,0)=%d, boundaryCondition(1,0)=%d\n",numSteps,Nx,kappa,tFinal,boundaryCondition(0,0),boundaryCondition(1,0));
     printf(" ----------------- Using Forward Euler Time Stepping -------------------------- \n");
 
