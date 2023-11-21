@@ -274,7 +274,7 @@ int main(int argc, char *argv[]){
     Real *un_h = nullptr;
     Real *uc_d = u_d[curr];
     Real *un_d = nullptr;
-    setInitialCondition(uc_d, nd1_d, nd1a_d, nd1b_d, x_d, t_d, nt_d);
+    setInitialCondition<<<nb, nt>>>(uc_d, nd1_d, nd1a_d, nd1b_d, x_d, t_d, nt_d);
     cudaMemcpy(uc_h, uc_d, nd1*sizeof(double), cudaMemcpyDeviceToHost);
 
     /* Time-step restrictions */
