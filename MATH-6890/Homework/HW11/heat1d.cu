@@ -25,7 +25,7 @@ using std::max;
 
 
 // some necessary constants
-Real kappa  = 0.1;
+const Real kappa  = 0.1;
 const Real kx = 3.0;
 const Real kxpi = kx * M_PI;
 const Real kappaPiSq = kappa * kxpi * kxpi;
