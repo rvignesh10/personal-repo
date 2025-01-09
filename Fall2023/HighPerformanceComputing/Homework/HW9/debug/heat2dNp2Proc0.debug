@@ -1,0 +1,4 @@
+x-direction discretization:
+nd1a=-1, n1a=0, n1b=1000, nd1b=1001, nd1=1003
+y-direction (local) discretization:
+nd2a=-1, n2a=0, n2b=500, nd2b=501, nd2=503
