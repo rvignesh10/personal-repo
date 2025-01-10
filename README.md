@@ -1,7 +1,9 @@
 This repository contains all of my personal work in terms of courses and projects
 
-Personal Finite Element 2D code/\n
-Personal DiscontinuousGalerkin1D code/\n
+Personal Finite Element 2D code/
+
+Personal DiscontinuousGalerkin1D code/
+
 Personal DiscontinuousGalerkinDifference1D code/
 
 Fall2021/
